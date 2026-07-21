@@ -1,25 +1,46 @@
-[app]
-secret_key = cambiar_en_config_real
-environment = dev
-debug = true
+[flask]
+secret_key = CAMBIAR_EN_SERVIDOR
 host = 0.0.0.0
 port = 5060
+debug = false
+session_cookie_secure = false
 
-[oracle_billing_one]
-host = localhost
-port = 1521
-service_name = XEPDB1
-user = SISFACT
-password = cambiar_en_config_real
+[oracle]
+; Formato real usado por SIS-FACT en servidor.
+; No subir credenciales reales al repositorio.
+user = SCHEMA_SISFACT
+password = CAMBIAR_EN_CONFIG_REAL
+dsn = host_oracle:1521/servicio
 pool_min = 1
-pool_max = 5
+pool_max = 8
 pool_increment = 1
+thick_mode = true
+client_lib_dir = C:\Oracle\product\instantclient_19_19
+
+[ldap]
+; LDAP se usa para autenticar login corporativo.
+; La creación y administración de usuarios SIS-FACT debe quedar en Oracle local.
+enabled = true
+servers = ldap01.empresa.local,ldap02.empresa.local
+port = 636
+use_ssl = true
+start_tls = false
+validate_certificate = true
+ca_cert_file =
+tls_ciphers = DEFAULT:@SECLEVEL=0
+authentication = SIMPLE
+login_format = UPN
+domain_suffix = empresa.local
+netbios_domain = EMPRESA
+connect_timeout = 5
+receive_timeout = 8
 
 [sqlserver_fact]
 server = localhost
+port = 1433
 database = FACT_2024
-user = cambiar_en_config_real
-password = cambiar_en_config_real
+user = CAMBIAR_EN_CONFIG_REAL
+password = CAMBIAR_EN_CONFIG_REAL
 driver = ODBC Driver 17 for SQL Server
 encrypt = no
 trust_server_certificate = yes
