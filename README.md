@@ -35,6 +35,7 @@ Empresa / RUT emisor
 - Registro de fuentes de datos.
 - Registro de extracciones.
 - Healthcheck de plataforma.
+- Login LDAP estilo Altas con autorización local en Oracle.
 - Diseño inicial de capa de analítica e IA.
 - Scripts SQL base.
 - Documentación técnica inicial.
@@ -45,6 +46,7 @@ Empresa / RUT emisor
 ```text
 sis-fact/
 ├── sisfact/                     código Flask
+│   ├── auth/                    login LDAP/local y usuarios
 │   ├── core/                    configuración, seguridad, base común
 │   ├── integrations/            conectores y registro de fuentes
 │   ├── analytics/               capa de analítica e IA
@@ -94,21 +96,33 @@ copy config.ini.example config.ini
 python -m flask --app wsgi:app run --host 0.0.0.0 --port 5060 --debug
 ```
 
-## Manual de instalación
-
-El procedimiento completo está en:
+## Manuales
 
 ```text
 docs/MANUAL_INSTALACION.md
+docs/AUTENTICACION_LDAP.md
 ```
 
-Incluye:
+El manual de instalación incluye:
 
 - Instalación en desarrollo.
 - Instalación en servidor Windows.
 - Configuración de Oracle y SQL Server.
+- Configuración LDAP compatible con Altas.
 - Ejecución con Flask.
 - Ejecución productiva con Waitress.
 - Instalación como servicio Windows con NSSM.
 - Validación de healthcheck.
 - Convivencia con ATLAS u otros Flask usando puertos distintos.
+
+## Login LDAP
+
+SIS-FACT usa autorización local y autenticación corporativa:
+
+```text
+Usuario autorizado / rol -> Oracle local, tabla SIS_USER
+Password corporativa     -> LDAP
+Sesión web               -> Flask session
+```
+
+Crear usuario no consulta LDAP. El usuario se crea en Oracle y, al ingresar a `/login`, SIS-FACT valida la password contra LDAP si `AUTH_TYPE = LDAP`.
