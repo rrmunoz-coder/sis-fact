@@ -2,17 +2,14 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
-import oracledb
-
+from sisfact.core.oracle import connect
 from sisfact.integrations.base import Connector
 from sisfact.integrations.models import NormalizedRecord
 
 
 class OracleConnector(Connector):
     def _connect(self):
-        cfg = self.config[self.data_source.connection_key]
-        dsn = oracledb.makedsn(cfg.get("host"), int(cfg.get("port", "1521")), service_name=cfg.get("service_name"))
-        return oracledb.connect(user=cfg.get("user"), password=cfg.get("password"), dsn=dsn)
+        return connect(self.config, self.data_source.connection_key)
 
     def healthcheck(self) -> dict[str, Any]:
         try:
