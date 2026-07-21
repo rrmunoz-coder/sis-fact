@@ -1,0 +1,39 @@
+[app]
+secret_key = cambiar_en_config_real
+environment = dev
+debug = true
+host = 0.0.0.0
+port = 5060
+
+[oracle_billing_one]
+host = localhost
+port = 1521
+service_name = XEPDB1
+user = SISFACT
+password = cambiar_en_config_real
+pool_min = 1
+pool_max = 5
+pool_increment = 1
+
+[sqlserver_fact]
+server = localhost
+database = FACT_2024
+user = cambiar_en_config_real
+password = cambiar_en_config_real
+driver = ODBC Driver 17 for SQL Server
+encrypt = no
+trust_server_certificate = yes
+
+[rest_default]
+base_url = https://example.local/api
+timeout_seconds = 30
+
+[soap_default]
+wsdl_url = https://example.local/service?wsdl
+timeout_seconds = 60
+
+[ai]
+provider = disabled
+mode = local_or_external
+base_url = http://localhost:11434
+model = pending
