@@ -6,15 +6,18 @@ from sisfact.auth.models import SisFactUser
 from sisfact.core.oracle import connect
 
 
+USER_TABLE = "rm_cfact_user"
+
+
 class UserRepository:
     def __init__(self, config: ConfigParser):
         self.config = config
 
     def find_by_username(self, username: str) -> SisFactUser | None:
         normalized = username.strip().lower()
-        sql = """
+        sql = f"""
             SELECT user_id, username, display_name, email, role_code, auth_type, active
-            FROM sis_user
+            FROM {USER_TABLE}
             WHERE LOWER(username) = :username
         """
         with connect(self.config, "oracle") as conn:
@@ -25,9 +28,9 @@ class UserRepository:
 
     def get_password_hash(self, username: str) -> str | None:
         normalized = username.strip().lower()
-        sql = """
+        sql = f"""
             SELECT password_hash
-            FROM sis_user
+            FROM {USER_TABLE}
             WHERE LOWER(username) = :username
               AND active = 'Y'
         """
@@ -50,8 +53,8 @@ class UserRepository:
 
         No conecta contra LDAP. LDAP solo se usa al momento del login.
         """
-        sql = """
-            INSERT INTO sis_user (
+        sql = f"""
+            INSERT INTO {USER_TABLE} (
                 username, display_name, email, role_code, auth_type, active, created_by
             ) VALUES (
                 LOWER(:username), :display_name, :email, UPPER(:role_code), UPPER(:auth_type), 'Y', :created_by
