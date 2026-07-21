@@ -132,20 +132,32 @@ Debe tener secciones:
 
 No subir nunca `config.ini` real al repositorio.
 
-## 7. Crear tablas base Oracle
+## 7. Validar ambiente y crear tablas base Oracle
 
-Conectarse al esquema Oracle donde vivirá SIS-FACT y ejecutar en este orden:
+Conectarse al esquema Oracle donde vivirá SIS-FACT y ejecutar **siempre en este orden**:
 
 ```text
+sql/00_VALIDAR_AMBIENTE.sql
 sql/01_CORE_INTEGRACION.sql
 sql/02_SECURITY_USERS.sql
 ```
 
+El `00_VALIDAR_AMBIENTE.sql` se ejecuta primero porque solo valida conexión, esquema, privilegios y objetos existentes. No crea las tablas finales del sistema.
+
 Desde SQL Developer o DBeaver, ejecutar los archivos ubicados en:
 
 ```text
+K:\@@@@@\sis-fact\sql\00_VALIDAR_AMBIENTE.sql
 K:\@@@@@\sis-fact\sql\01_CORE_INTEGRACION.sql
 K:\@@@@@\sis-fact\sql\02_SECURITY_USERS.sql
+```
+
+Desde SQL*Plus, el orden equivalente es:
+
+```cmd
+sqlplus usuario/password@servicio @K:\@@@@@\sis-fact\sql\00_VALIDAR_AMBIENTE.sql
+sqlplus usuario/password@servicio @K:\@@@@@\sis-fact\sql\01_CORE_INTEGRACION.sql
+sqlplus usuario/password@servicio @K:\@@@@@\sis-fact\sql\02_SECURITY_USERS.sql
 ```
 
 Si antes se alcanzaron a crear tablas con prefijo `SIS_`, revisar y ejecutar la migración manual:
@@ -322,12 +334,13 @@ ca_cert_file=C:\ruta\certificado_ca.pem
 [ ] Código en K:\@@@@@\sis-fact
 [ ] Entorno virtual creado
 [ ] Dependencias instaladas
-[ ] config.ini real creado localmente
-[ ] Tablas RM_CFACT_ creadas
+[ ] config.ini real local creado
+[ ] 00_VALIDAR_AMBIENTE.sql ejecutado OK
+[ ] 01_CORE_INTEGRACION.sql ejecutado OK
+[ ] 02_SECURITY_USERS.sql ejecutado OK
 [ ] Usuario inicial cargado en RM_CFACT_USER
-[ ] LDAP responde o está configurado
-[ ] Flask responde en modo manual
-[ ] Waitress responde manualmente
-[ ] Servicio Windows instalado
-[ ] Healthcheck OK
+[ ] /health OK
+[ ] /api/v1/security/ldap/status OK
+[ ] /login visible
+[ ] Servicio Windows configurado, si aplica
 ```
