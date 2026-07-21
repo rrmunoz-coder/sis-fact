@@ -25,11 +25,13 @@ Esta versión aún no contiene login productivo, dashboards finales ni consultas
 ```text
 Windows Server o Windows 10/11 para desarrollo
 Python 3.11 o superior
-Git
+Git opcional, solo si se clona el repositorio por consola
 Oracle Instant Client, si se usará Oracle
 ODBC Driver 17 o 18 for SQL Server, si se usará SQL Server
 Acceso de red a Oracle / SQL Server / APIs según corresponda
 ```
+
+> Nota: Git no es obligatorio. Si Windows no reconoce el comando `git`, usar la opción de descarga ZIP indicada en la sección 3.2.
 
 ### Puerto recomendado
 
@@ -44,28 +46,88 @@ Pueden convivir varias aplicaciones Flask en el mismo Windows siempre que usen p
 
 ---
 
-## 3. Clonar repositorio
+## 3. Obtener el código fuente
 
-En el servidor, ubicar una carpeta de aplicaciones. Ejemplo:
+La ruta final debe ser estable si se instalará como servicio Windows.
+
+Ejemplos recomendados:
+
+```text
+D:\sis-fact
+K:\@@@@@SIS_FACT
+```
+
+### 3.1 Opción A: con Git instalado
+
+Primero validar si Git existe:
+
+```cmd
+git --version
+```
+
+Si responde una versión, clonar:
 
 ```cmd
 D:
-cd D:\
+cd \
 git clone https://github.com/rrmunoz-coder/sis-fact.git
 cd sis-fact
 ```
 
-Otra ruta válida:
+Si la carpeta ya existe y se quiere actualizar:
 
 ```cmd
-K:\@@@@@SIS_FACT
+D:
+cd \sis-fact
+git pull
 ```
 
-La ruta final debe ser estable si se instalará como servicio Windows.
+Si aparece el error `'git' no se reconoce como un comando interno o externo`, usar la opción 3.2.
+
+### 3.2 Opción B: sin Git, descargando ZIP desde PowerShell
+
+Desde CMD o PowerShell:
+
+```cmd
+D:
+cd \
+powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://github.com/rrmunoz-coder/sis-fact/archive/refs/heads/main.zip' -OutFile 'sis-fact-main.zip'"
+powershell -ExecutionPolicy Bypass -Command "Expand-Archive -Path 'sis-fact-main.zip' -DestinationPath 'D:\' -Force"
+ren sis-fact-main sis-fact
+cd sis-fact
+```
+
+Si la carpeta `D:\sis-fact` ya existe, renombrarla o respaldarla antes:
+
+```cmd
+ren D:\sis-fact sis-fact_backup
+```
+
+### 3.3 Opción C: descarga manual desde navegador
+
+1. Abrir el repositorio en el navegador.
+2. Presionar **Code**.
+3. Elegir **Download ZIP**.
+4. Descomprimir.
+5. Renombrar la carpeta a `sis-fact`.
+6. Dejarla en una ruta estable, por ejemplo:
+
+```text
+D:\sis-fact
+```
 
 ---
 
 ## 4. Crear entorno virtual
+
+Entrar a la carpeta del sistema:
+
+```cmd
+D:
+cd \sis-fact
+```
+
+Crear y activar entorno virtual:
 
 ```cmd
 python -m venv .venv
@@ -222,6 +284,12 @@ D:\tools\nssm\nssm.exe
 
 No versionar `nssm.exe`.
 
+Crear carpeta de logs antes de iniciar:
+
+```cmd
+mkdir D:\sis-fact\logs
+```
+
 Instalar servicio:
 
 ```cmd
@@ -229,19 +297,6 @@ D:\tools\nssm\nssm.exe install SISFACT_BillingOne
 ```
 
 Configurar en la ventana de NSSM:
-
-```text
-Application path:
-D:\sis-fact\.venv\Scripts\python.exe
-
-Startup directory:
-D:\sis-fact
-
-Arguments:
--m waitress --host=0.0.0.0 --port=5060 wsgi:app
-```
-
-Si el comando anterior no reconoce waitress como módulo, usar:
 
 ```text
 Application path:
@@ -262,12 +317,6 @@ D:\sis-fact\logs\service_out.log
 
 I/O > Error:
 D:\sis-fact\logs\service_err.log
-```
-
-Crear carpeta de logs antes de iniciar:
-
-```cmd
-mkdir D:\sis-fact\logs
 ```
 
 Iniciar servicio:
@@ -293,6 +342,21 @@ Eliminar servicio, si se requiere reinstalar:
 
 ```cmd
 D:\tools\nssm\nssm.exe remove SISFACT_BillingOne confirm
+```
+
+### 9.2 Alternativa si NSSM no abre correctamente Waitress
+
+Usar Python directamente como aplicación del servicio:
+
+```text
+Application path:
+D:\sis-fact\.venv\Scripts\python.exe
+
+Startup directory:
+D:\sis-fact
+
+Arguments:
+-m waitress --host=0.0.0.0 --port=5060 wsgi:app
 ```
 
 ---
@@ -358,6 +422,35 @@ Cada aplicación debe tener:
 
 ## 12. Troubleshooting
 
+### Error: `git` no se reconoce como comando interno o externo
+
+Windows no tiene Git instalado o no está en el PATH.
+
+Soluciones:
+
+1. Usar descarga ZIP según sección 3.2.
+2. Instalar Git for Windows y reabrir CMD/PowerShell.
+3. Descargar manualmente desde navegador según sección 3.3.
+
+Para esta instalación, Git no es obligatorio.
+
+### Error: `python` no se reconoce como comando interno o externo
+
+Python no está instalado o no está en el PATH.
+
+Validar:
+
+```cmd
+py --version
+python --version
+```
+
+Si `py` funciona, se puede crear el entorno con:
+
+```cmd
+py -m venv .venv
+```
+
 ### Error: puerto ocupado
 
 Validar:
@@ -404,7 +497,8 @@ Probar primero ejecución manual con Waitress.
 ## 13. Checklist de instalación
 
 ```text
-[ ] Repositorio clonado
+[ ] Código obtenido por Git o ZIP
+[ ] Carpeta estable definida
 [ ] Entorno virtual creado
 [ ] Dependencias instaladas
 [ ] config.ini creado localmente
