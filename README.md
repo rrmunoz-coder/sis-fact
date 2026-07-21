@@ -38,6 +38,7 @@ Empresa / RUT emisor
 - Diseño inicial de capa de analítica e IA.
 - Scripts SQL base.
 - Documentación técnica inicial.
+- Manual de instalación con ejecución como servicio Windows.
 
 ## Estructura
 
@@ -92,3 +93,22 @@ pip install -r requirements.txt
 copy config.ini.example config.ini
 python -m flask --app wsgi:app run --host 0.0.0.0 --port 5060 --debug
 ```
+
+## Manual de instalación
+
+El procedimiento completo está en:
+
+```text
+docs/MANUAL_INSTALACION.md
+```
+
+Incluye:
+
+- Instalación en desarrollo.
+- Instalación en servidor Windows.
+- Configuración de Oracle y SQL Server.
+- Ejecución con Flask.
+- Ejecución productiva con Waitress.
+- Instalación como servicio Windows con NSSM.
+- Validación de healthcheck.
+- Convivencia con ATLAS u otros Flask usando puertos distintos.
