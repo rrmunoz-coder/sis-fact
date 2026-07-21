@@ -26,6 +26,27 @@ Empresa / RUT emisor
   -> Casos, documentos, controles, SII y caja
 ```
 
+## Regla obligatoria de naming Oracle
+
+Todas las tablas propias del sistema deben comenzar con:
+
+```text
+RM_CFACT_
+```
+
+Ejemplos:
+
+```text
+RM_CFACT_USER
+RM_CFACT_DATA_SOURCE
+RM_CFACT_EXTRACTION_RUN
+RM_CFACT_INTEGRATION_CALL
+RM_CFACT_AUDIT_LOG
+RM_CFACT_AI_PROVIDER
+```
+
+No se deben crear tablas nuevas con prefijos `SIS_`, `BILLING_`, `BO_` u otros nombres propios del sistema sin el prefijo `RM_CFACT_`.
+
 ## Alcance de esta versión
 
 - Core Flask independiente.
@@ -101,6 +122,7 @@ python -m flask --app wsgi:app run --host 0.0.0.0 --port 5060 --debug
 ```text
 docs/MANUAL_INSTALACION.md
 docs/AUTENTICACION_LDAP.md
+docs/NAMING_ORACLE.md
 ```
 
 El manual de instalación incluye:
@@ -120,7 +142,7 @@ El manual de instalación incluye:
 SIS-FACT usa autorización local y autenticación corporativa:
 
 ```text
-Usuario autorizado / rol -> Oracle local, tabla SIS_USER
+Usuario autorizado / rol -> Oracle local, tabla RM_CFACT_USER
 Password corporativa     -> LDAP
 Sesión web               -> Flask session
 ```
