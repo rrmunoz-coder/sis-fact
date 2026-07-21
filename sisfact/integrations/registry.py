@@ -23,7 +23,8 @@ class SourceRegistry:
 
 def default_registry() -> SourceRegistry:
     registry = SourceRegistry()
-    registry.register(DataSource("ORACLE_BILLING", "Oracle Billing", SourceType.ORACLE, SourceRole.BILLING, "oracle_billing_one", priority_order=10))
+    # Oracle principal usa la sección [oracle] del config.ini, compatible con Altas.
+    registry.register(DataSource("ORACLE_BILLING", "Oracle Billing", SourceType.ORACLE, SourceRole.BILLING, "oracle", priority_order=10))
     registry.register(DataSource("MSSQL_FACT", "SQL Server FACT", SourceType.SQLSERVER, SourceRole.BILLING, "sqlserver_fact", priority_order=20))
     registry.register(DataSource("FACTURADOR_REST", "Facturador REST", SourceType.REST, SourceRole.INVOICER, "rest_default", priority_order=30))
     registry.register(DataSource("FACTURADOR_SOAP", "Facturador SOAP", SourceType.SOAP, SourceRole.INVOICER, "soap_default", priority_order=40))
