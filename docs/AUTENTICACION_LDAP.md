@@ -14,6 +14,20 @@ Esto significa que **crear usuario no consulta LDAP**. Crear usuario solo regist
 
 El LDAP se usa únicamente cuando el usuario intenta iniciar sesión.
 
+## Regla de naming de tablas
+
+Todas las tablas propias de SIS-FACT / Billing One deben comenzar con:
+
+```text
+RM_CFACT_
+```
+
+Por eso la tabla de usuarios es:
+
+```text
+RM_CFACT_USER
+```
+
 ## Configuración requerida
 
 El archivo `config.ini` local debe contener:
@@ -55,7 +69,7 @@ sql/02_SECURITY_USERS.sql
 Tabla principal:
 
 ```text
-SIS_USER
+RM_CFACT_USER
 ```
 
 Campos principales:
@@ -74,7 +88,7 @@ ACTIVE         Y / N
 Ejemplo SQL:
 
 ```sql
-INSERT INTO sis_user (
+INSERT INTO rm_cfact_user (
     username, display_name, email, role_code, auth_type, active, created_by
 ) VALUES (
     'rmunoz', 'Ruben Muñoz', 'rmunoz@empresa.local', 'ADMIN', 'LDAP', 'Y', 'INSTALL'
@@ -110,7 +124,7 @@ http://localhost:5060/login
 Flujo:
 
 1. El usuario ingresa usuario y password.
-2. SIS-FACT valida que el usuario exista en `SIS_USER` y esté activo.
+2. SIS-FACT valida que el usuario exista en `RM_CFACT_USER` y esté activo.
 3. Si `AUTH_TYPE = LDAP`, SIS-FACT hace bind contra LDAP.
 4. Si LDAP responde OK, se crea sesión Flask.
 
