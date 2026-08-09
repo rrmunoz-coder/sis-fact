@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from flask import Flask, current_app, jsonify
+from flask import Flask, Response, current_app, jsonify, redirect, session, url_for
 
 from sisfact.analytics.reporting_service import ReportingService
 from sisfact.integrations.factory import ConnectorFactory
@@ -12,15 +12,16 @@ from sisfact.integrations.registry import default_registry
 def register_routes(app: Flask) -> None:
     @app.get("/")
     def home():
-        return jsonify({
-            "system": "SIS-FACT / Billing One",
-            "version": "0.1.0",
-            "status": "OK",
-            "modules": ["core", "integrations", "analytics"],
-        })
+        if session.get("user"):
+            return redirect(url_for("auth.app_home"))
+        return redirect(url_for("auth.login_form"))
 
     @app.get("/health")
     def health():
+        return Response("OK - SIS-FACT / Billing One\n", mimetype="text/plain")
+
+    @app.get("/api/v1/health")
+    def api_health():
         return jsonify({"status": "OK", "service": "sis-fact", "version": "0.1.0"})
 
     @app.get("/api/v1/sources")
