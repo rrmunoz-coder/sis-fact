@@ -5,15 +5,15 @@
 Este manual permite instalar y ejecutar **SIS-FACT / Billing One** en Windows usando la ruta operativa acordada:
 
 ```text
-K:\@@@@@\sis-fact
+K:\@@@@@sis-fact
 ```
 
-La versión `v0.1.0` instala la base técnica del sistema:
+La versión `v0.1.0` instala la base técnica consolidada del sistema:
 
 - Aplicación Flask independiente.
 - Configuración externa sin secretos versionados.
 - Conectores base Oracle, SQL Server, REST, SOAP y archivos.
-- Login LDAP estilo Altas con autorización local en Oracle.
+- Login LDAP estilo ATLAS con autorización local en Oracle.
 - Registro de fuentes de datos.
 - Registro de extracciones.
 - Healthcheck técnico.
@@ -40,7 +40,38 @@ RM_CFACT_USER
 
 No crear tablas nuevas del sistema con prefijo `SIS_`, `BO_`, `BILLING_` u otro distinto.
 
-## 3. Requisitos del servidor
+## 3. Regla de entrega única
+
+El repositorio mantiene una sola versión vigente en `main`.
+
+```text
+NO usar como versión principal:
+- sis-fact-main/
+- sis-fact-main.zip
+- .venv.venv/
+- carpetas patch_*
+- copias manuales del código
+```
+
+La carpeta local válida para ejecución es:
+
+```text
+K:\@@@@@sis-fact
+```
+
+El único entorno virtual esperado es:
+
+```text
+K:\@@@@@sis-fact\.venv
+```
+
+El script local de ejecución es:
+
+```text
+K:\@@@@@sis-fact\run_dev.cmd
+```
+
+## 4. Requisitos del servidor
 
 ```text
 Windows Server o Windows 10/11 para desarrollo
@@ -58,13 +89,7 @@ ATLAS, si existe:       5050
 SIS-FACT / Billing One: 5060
 ```
 
-## 4. Obtener código fuente
-
-Ruta final esperada:
-
-```cmd
-cd /d K:\@@@@@\sis-fact
-```
+## 5. Obtener código fuente
 
 ### Opción manual recomendada
 
@@ -72,52 +97,53 @@ cd /d K:\@@@@@\sis-fact
 2. Presionar **Code**.
 3. Elegir **Download ZIP**.
 4. Descomprimir.
-5. Renombrar la carpeta a `sis-fact`.
+5. Renombrar la carpeta descomprimida a `sis-fact`.
 6. Dejarla en:
 
 ```text
-K:\@@@@@\sis-fact
+K:\@@@@@sis-fact
 ```
 
 ### Opción con Git instalado
 
 ```cmd
 K:
-cd \@@@@@
-git clone https://github.com/rrmunoz-coder/sis-fact.git
-cd sis-fact
+cd \
+git clone https://github.com/rrmunoz-coder/sis-fact.git @@@@@sis-fact
+cd /d K:\@@@@@sis-fact
 ```
 
 Actualizar:
 
 ```cmd
-cd /d K:\@@@@@\sis-fact
+cd /d K:\@@@@@sis-fact
 git pull
 ```
 
-## 5. Crear entorno virtual
+## 6. Crear entorno virtual
 
 ```cmd
-cd /d K:\@@@@@\sis-fact
+cd /d K:\@@@@@sis-fact
 python -m venv .venv
-.venv\Scripts\activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install --upgrade pip
+.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## 6. Configuración local
+No usar `.venv.venv`.
+
+## 7. Configuración local
 
 Copiar ejemplo:
 
 ```cmd
-cd /d K:\@@@@@\sis-fact
+cd /d K:\@@@@@sis-fact
 copy config.ini.example config.ini
 ```
 
 El archivo real queda en:
 
 ```text
-K:\@@@@@\sis-fact\config.ini
+K:\@@@@@sis-fact\config.ini
 ```
 
 Debe tener secciones:
@@ -132,7 +158,7 @@ Debe tener secciones:
 
 No subir nunca `config.ini` real al repositorio.
 
-## 7. Validar ambiente y crear tablas base Oracle
+## 8. Validar ambiente y crear tablas base Oracle
 
 Conectarse al esquema Oracle donde vivirá SIS-FACT y ejecutar **siempre en este orden**:
 
@@ -142,22 +168,14 @@ sql/01_CORE_INTEGRACION.sql
 sql/02_SECURITY_USERS.sql
 ```
 
-El `00_VALIDAR_AMBIENTE.sql` se ejecuta primero porque solo valida conexión, esquema, privilegios y objetos existentes. No crea las tablas finales del sistema.
+El `00_VALIDAR_AMBIENTE.sql` se ejecuta primero porque valida conexión, esquema, privilegios y objetos existentes. No crea las tablas finales del sistema.
 
-Desde SQL Developer o DBeaver, ejecutar los archivos ubicados en:
+Desde DBeaver, ejecutar los archivos ubicados en:
 
 ```text
-K:\@@@@@\sis-fact\sql\00_VALIDAR_AMBIENTE.sql
-K:\@@@@@\sis-fact\sql\01_CORE_INTEGRACION.sql
-K:\@@@@@\sis-fact\sql\02_SECURITY_USERS.sql
-```
-
-Desde SQL*Plus, el orden equivalente es:
-
-```cmd
-sqlplus usuario/password@servicio @K:\@@@@@\sis-fact\sql\00_VALIDAR_AMBIENTE.sql
-sqlplus usuario/password@servicio @K:\@@@@@\sis-fact\sql\01_CORE_INTEGRACION.sql
-sqlplus usuario/password@servicio @K:\@@@@@\sis-fact\sql\02_SECURITY_USERS.sql
+K:\@@@@@sis-fact\sql\00_VALIDAR_AMBIENTE.sql
+K:\@@@@@sis-fact\sql\01_CORE_INTEGRACION.sql
+K:\@@@@@sis-fact\sql\02_SECURITY_USERS.sql
 ```
 
 Si antes se alcanzaron a crear tablas con prefijo `SIS_`, revisar y ejecutar la migración manual:
@@ -166,7 +184,7 @@ Si antes se alcanzaron a crear tablas con prefijo `SIS_`, revisar y ejecutar la 
 sql/90_RENAME_SIS_TO_RM_CFACT.sql
 ```
 
-## 8. Crear usuario inicial autorizado
+## 9. Crear usuario inicial autorizado
 
 Ejemplo para usuario LDAP:
 
@@ -194,31 +212,43 @@ COMMIT;
 
 La password no se guarda en Oracle. LDAP la valida al momento del login.
 
-## 9. Ejecutar en modo desarrollo
-
-```cmd
-cd /d K:\@@@@@\sis-fact
-.venv\Scripts\activate
-python -m flask --app wsgi:app run --host 0.0.0.0 --port 5060 --debug
-```
-
-Abrir:
+El login acepta:
 
 ```text
-http://localhost:5060/health
-http://localhost:5060/api/v1/security/ldap/status
-http://localhost:5060/login
+tu_usuario
+CLAROCHILE\tu_usuario
+tu_usuario@clarochile.org
 ```
 
-## 10. Ejecutar con Waitress
+Para autorización local se normaliza al usuario sin dominio.
+
+## 10. Ejecutar en modo desarrollo
+
+Ejecutar:
 
 ```cmd
-cd /d K:\@@@@@\sis-fact
-.venv\Scripts\activate
-waitress-serve --host=0.0.0.0 --port=5060 wsgi:app
+cd /d K:\@@@@@sis-fact
+run_dev.cmd
 ```
 
-## 11. Instalar como servicio Windows
+Abrir en Chrome o Edge:
+
+```text
+http://127.0.0.1:5060/health
+http://127.0.0.1:5060/api/v1/security/ldap/status
+http://127.0.0.1:5060/login
+```
+
+No usar Internet Explorer para validar JSON.
+
+## 11. Ejecutar con Waitress
+
+```cmd
+cd /d K:\@@@@@sis-fact
+.venv\Scripts\waitress-serve.exe --host=0.0.0.0 --port=5060 wsgi:app
+```
+
+## 12. Instalar como servicio Windows
 
 Servicio sugerido:
 
@@ -229,7 +259,7 @@ SISFACT_BillingOne
 Crear logs:
 
 ```cmd
-mkdir K:\@@@@@\sis-fact\logs
+mkdir K:\@@@@@sis-fact\logs
 ```
 
 Con NSSM:
@@ -242,10 +272,10 @@ Configurar:
 
 ```text
 Application path:
-K:\@@@@@\sis-fact\.venv\Scripts\waitress-serve.exe
+K:\@@@@@sis-fact\.venv\Scripts\waitress-serve.exe
 
 Startup directory:
-K:\@@@@@\sis-fact
+K:\@@@@@sis-fact
 
 Arguments:
 --host=0.0.0.0 --port=5060 wsgi:app
@@ -255,10 +285,10 @@ Logs NSSM:
 
 ```text
 I/O > Output:
-K:\@@@@@\sis-fact\logs\service_out.log
+K:\@@@@@sis-fact\logs\service_out.log
 
 I/O > Error:
-K:\@@@@@\sis-fact\logs\service_err.log
+K:\@@@@@sis-fact\logs\service_err.log
 ```
 
 Iniciar:
@@ -273,31 +303,25 @@ Detener:
 net stop SISFACT_BillingOne
 ```
 
-Reiniciar:
+## 13. Validaciones
 
 ```cmd
-net stop SISFACT_BillingOne
-net start SISFACT_BillingOne
-```
-
-## 12. Validaciones
-
-```cmd
-sc query SISFACT_BillingOne
 netstat -ano | findstr :5060
+curl http://127.0.0.1:5060/health
+curl http://127.0.0.1:5060/api/v1/security/ldap/status
 ```
 
 Endpoints:
 
 ```text
-http://localhost:5060/health
-http://localhost:5060/api/v1/sources
-http://localhost:5060/api/v1/sources/health
-http://localhost:5060/api/v1/security/ldap/status
-http://localhost:5060/login
+http://127.0.0.1:5060/health
+http://127.0.0.1:5060/api/v1/health
+http://127.0.0.1:5060/api/v1/security/ldap/status
+http://127.0.0.1:5060/login
+http://127.0.0.1:5060/app
 ```
 
-## 13. Troubleshooting rápido
+## 14. Troubleshooting rápido
 
 ### Puerto ocupado
 
@@ -310,8 +334,8 @@ netstat -ano | findstr :5060
 Revisar:
 
 ```text
-K:\@@@@@\sis-fact\logs\service_err.log
-K:\@@@@@\sis-fact\logs\service_out.log
+K:\@@@@@sis-fact\logs\service_err.log
+K:\@@@@@sis-fact\logs\service_out.log
 ```
 
 ### LDAP falla por certificado
@@ -328,19 +352,31 @@ Para ambiente formal, instalar CA y configurar:
 ca_cert_file=C:\ruta\certificado_ca.pem
 ```
 
-## 14. Checklist
+### Login dice usuario no registrado
+
+Validar:
+
+```sql
+SELECT username, display_name, email, role_code, auth_type, active
+FROM rm_cfact_user
+WHERE LOWER(username) = LOWER('tu_usuario');
+```
+
+## 15. Checklist
 
 ```text
-[ ] Código en K:\@@@@@\sis-fact
-[ ] Entorno virtual creado
+[ ] Código en K:\@@@@@sis-fact
+[ ] No usar sis-fact-main ni zip como carpeta activa
+[ ] Entorno virtual .venv creado
 [ ] Dependencias instaladas
 [ ] config.ini real local creado
 [ ] 00_VALIDAR_AMBIENTE.sql ejecutado OK
 [ ] 01_CORE_INTEGRACION.sql ejecutado OK
 [ ] 02_SECURITY_USERS.sql ejecutado OK
 [ ] Usuario inicial cargado en RM_CFACT_USER
+[ ] run_dev.cmd levanta puerto 5060
 [ ] /health OK
 [ ] /api/v1/security/ldap/status OK
 [ ] /login visible
-[ ] Servicio Windows configurado, si aplica
+[ ] /app visible después de login
 ```
