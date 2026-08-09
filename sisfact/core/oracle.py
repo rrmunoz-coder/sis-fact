@@ -29,10 +29,15 @@ def _init_client_if_needed(cfg: Any) -> None:
     with _CLIENT_LOCK:
         if _CLIENT_INITIALIZED:
             return
-        if client_lib_dir:
-            oracledb.init_oracle_client(lib_dir=client_lib_dir)
-        else:
-            oracledb.init_oracle_client()
+        try:
+            if client_lib_dir:
+                oracledb.init_oracle_client(lib_dir=client_lib_dir)
+            else:
+                oracledb.init_oracle_client()
+        except Exception as exc:
+            message = str(exc).lower()
+            if "already" not in message and "dpi-2019" not in message:
+                raise
         _CLIENT_INITIALIZED = True
 
 
@@ -40,9 +45,9 @@ def get_oracle_config(config: ConfigParser, section: str = "oracle"):
     if config.has_section(section):
         return config[section]
     if config.has_section("oracle_billing_one"):
-        # Compatibilidad con la primera versión del repositorio.
+        # Compatibilidad con la primera version del repositorio.
         return config["oracle_billing_one"]
-    raise KeyError("No existe configuración Oracle. Se esperaba sección [oracle].")
+    raise KeyError("No existe configuracion Oracle. Se esperaba seccion [oracle].")
 
 
 def build_dsn(cfg: Any) -> str:
