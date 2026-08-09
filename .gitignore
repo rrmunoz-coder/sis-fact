@@ -1,5 +1,8 @@
 config.ini
 .venv/
+.venv.venv/
+sis-fact-main/
+inicia.bat
 __pycache__/
 *.pyc
 *.pyo
