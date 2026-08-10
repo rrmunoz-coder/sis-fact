@@ -1,43 +1,40 @@
-# Manifiesto SIS-FACT v0.1.0
+# Manifiesto Billing One v0.2.0
 
-## Contenido esperado
+## Contenido vigente
 
 ```text
-sisfact/                     aplicación Flask
-sisfact/core/                core común propio
-sisfact/integrations/        conectores de fuentes de datos
-sisfact/analytics/           analítica e IA
-sisfact/web/                 rutas web
-sql/                         scripts Oracle
-configs/                     plantillas de configuración opcionales
-docs/                        documentación funcional/técnica
-prompts/                     prompt de construcción
-releases/v0.1.0/             notas de versión
-tests/                       pruebas básicas
-requirements.txt             dependencias Python
-config.ini.example           configuración ejemplo sin secretos
-run_dev.cmd                  ejecución local
-wsgi.py                      entrada WSGI
-README.md                    resumen del proyecto
-VERSION.md                   versión vigente
-CHANGELOG.md                 historial de cambios
+sisfact/       aplicación Flask
+sql/           DDL, validadores, migración y rollback greenfield
+docs/          arquitectura, instalación y migración
+scripts/       validación de release/higiene
+tools/         diagnóstico Oracle/LDAP
+tests/         pruebas automáticas
+requirements.txt
+config.ini.example
+run_dev.cmd
+service_entry.py
+wsgi.py
+README.md
+VERSION.md
+CHANGELOG.md
 ```
 
 ## Exclusiones obligatorias
 
 ```text
-config.ini                  configuración real
-.venv/                      entorno virtual
-__pycache__/                caché Python
-*.pyc                       bytecode
-*.log                       logs
-*_old/                      respaldos antiguos
-_backup*/                   respaldos temporales
-*.zip                       paquetes generados
-*.xlsx con datos reales      archivos sensibles
-*.csv con datos reales       archivos sensibles
+config.ini
+.venv/
+.venv.venv/
+logs/
+__pycache__/
+*.pyc
+*.log
+*.zip
+sis-fact-main/
+nssm.exe
+credenciales o datos productivos
 ```
 
-## Regla de oro
+## Regla
 
-El repositorio contiene código, SQL, documentación, prompts y scripts reproducibles. No contiene secretos, credenciales ni datos productivos.
+`main` contiene una sola versión vigente. La historia anterior se conserva en Git, no como carpetas paralelas.

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Billing One{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  {% if session.get('user_id') %}
+  <header class="topbar">
+    <div>
+      <h1>Billing One</h1>
+      <small>SIS-FACT · Control integral de facturación</small>
+    </div>
+    <div>
+      {{ session.get('display_name') }} · {{ session.get('role_code') }}
+      <form class="logout-form" method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="button secondary">Salir</button>
+      </form>
+    </div>
+  </header>
+  {% endif %}
+  {% block body %}{% endblock %}
+</body>
+</html>

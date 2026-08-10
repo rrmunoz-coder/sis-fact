@@ -37,7 +37,7 @@ use_ssl = true
 start_tls = false
 validate_certificate = true
 ca_cert_file = C:\\certificados\\ca_corporativa.pem
-tls_ciphers = DEFAULT
+tls_ciphers = DEFAULT:@SECLEVEL=1
 allow_legacy_ciphers = false
 authentication = SIMPLE
 login_format = UPN

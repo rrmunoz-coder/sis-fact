@@ -1,145 +1,171 @@
 from __future__ import annotations
 
-import ssl
-from configparser import ConfigParser
 from dataclasses import dataclass
+from enum import Enum
+import ssl
 
-from ldap3 import ALL, SIMPLE, Connection, Server, Tls
+from flask import current_app
+from ldap3 import Connection, NONE, NTLM, SIMPLE, Server, Tls
+from ldap3.core.exceptions import LDAPException
 
 
-TRUE_VALUES = {"1", "true", "yes", "s", "si", "y"}
+class LDAPStatus(str, Enum):
+    SUCCESS = "SUCCESS"
+    INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
+    UNAVAILABLE = "UNAVAILABLE"
+    CONFIG_ERROR = "CONFIG_ERROR"
 
 
 @dataclass(frozen=True)
-class LdapResult:
-    ok: bool
-    server: str | None = None
-    bind_user: str | None = None
-    error: str | None = None
+class LDAPResult:
+    status: LDAPStatus
+    detail: str | None = None
 
 
-def _bool(value: str | None, default: bool = False) -> bool:
-    if value is None:
-        return default
-    return value.strip().lower() in TRUE_VALUES
-
-
-def normalize_username(value: str) -> str:
-    """Normaliza usuario para autorizacion local.
-
-    SIS-FACT guarda autorizacion local en RM_CFACT_USER.username sin dominio.
-    El login puede llegar como usuario, usuario@dominio o DOMINIO\usuario.
-    """
-    username = (value or "").strip().lower()
+def normalize_username(value: str | None) -> str:
+    username = (value or "").strip()
     if "\\" in username:
         username = username.rsplit("\\", 1)[-1]
     if "@" in username:
         username = username.split("@", 1)[0]
-    return username.strip()
+    return username.strip().lower()
 
 
-class LdapAuthenticator:
-    def __init__(self, config: ConfigParser):
-        self.config = config
-        self.cfg = config["ldap"] if config.has_section("ldap") else {}
+def _build_login(ldap_username: str) -> str:
+    value = ldap_username.strip()
+    if not value:
+        raise ValueError("LDAP_USERNAME vacío")
 
-    @property
-    def enabled(self) -> bool:
-        return _bool(self.cfg.get("enabled", "false"))
+    if "@" in value or "\\" in value or "=" in value:
+        return value
 
-    def _servers(self) -> list[str]:
-        return [s.strip() for s in self.cfg.get("servers", "").split(",") if s.strip()]
+    login_format = current_app.config["LDAP_LOGIN_FORMAT"]
+    if login_format == "UPN":
+        suffix = current_app.config["LDAP_DOMAIN_SUFFIX"]
+        if not suffix:
+            raise ValueError("ldap.domain_suffix es obligatorio para login_format=UPN")
+        return f"{value}@{suffix}"
+    if login_format == "NTLM":
+        domain = current_app.config["LDAP_NETBIOS_DOMAIN"]
+        if not domain:
+            raise ValueError("ldap.netbios_domain es obligatorio para login_format=NTLM")
+        return f"{domain}\\{value}"
+    if login_format in ("RAW", "AS_ENTERED"):
+        return value
+    raise ValueError(f"ldap.login_format no soportado: {login_format}")
 
-    def status(self) -> dict[str, object]:
-        return {
-            "enabled": self.enabled,
-            "servers_configured": len(self._servers()),
-            "port": int(self.cfg.get("port", "636")),
-            "use_ssl": _bool(self.cfg.get("use_ssl", "true"), True),
-            "login_format": self.cfg.get("login_format", "UPN"),
-            "domain_suffix_configured": bool(self.cfg.get("domain_suffix", "").strip()),
-            "netbios_domain_configured": bool(self.cfg.get("netbios_domain", "").strip()),
-            "validate_certificate": _bool(self.cfg.get("validate_certificate", "true"), True),
-        }
 
-    def format_login(self, username: str) -> str:
-        raw = (username or "").strip()
-        if not raw:
-            raise ValueError("Usuario LDAP vacio.")
-
-        # Si viene como UPN completo, se respeta.
-        if "@" in raw:
-            return raw
-
-        login_format = self.cfg.get("login_format", "UPN").strip().upper()
-
-        # Si viene DOMINIO\usuario y el modo es NETBIOS, se respeta.
-        if "\\" in raw and login_format == "NETBIOS":
-            return raw
-
-        local_user = normalize_username(raw)
-
-        if login_format == "UPN":
-            suffix = self.cfg.get("domain_suffix", "").strip()
-            if not suffix:
-                raise ValueError("LDAP login_format=UPN requiere domain_suffix.")
-            return f"{local_user}@{suffix}"
-
-        if login_format == "NETBIOS":
-            netbios = self.cfg.get("netbios_domain", "").strip()
-            if not netbios:
-                raise ValueError("LDAP login_format=NETBIOS requiere netbios_domain.")
-            return f"{netbios}\\{local_user}"
-
-        return local_user
-
-    def authenticate(self, username: str, password: str) -> LdapResult:
-        if not self.enabled:
-            return LdapResult(False, error="LDAP deshabilitado en config.ini")
-        if not password:
-            return LdapResult(False, error="Password vacio")
-
-        servers = self._servers()
-        if not servers:
-            return LdapResult(False, error="No hay servidores LDAP configurados")
-
-        port = int(self.cfg.get("port", "636"))
-        use_ssl = _bool(self.cfg.get("use_ssl", "true"), True)
-        validate_certificate = _bool(self.cfg.get("validate_certificate", "true"), True)
-        ca_cert_file = self.cfg.get("ca_cert_file", "").strip() or None
-        connect_timeout = int(self.cfg.get("connect_timeout", "5"))
-        receive_timeout = int(self.cfg.get("receive_timeout", "8"))
-        tls_ciphers = self.cfg.get("tls_ciphers", "").strip() or None
-
-        tls = Tls(
-            validate=ssl.CERT_REQUIRED if validate_certificate else ssl.CERT_NONE,
-            ca_certs_file=ca_cert_file,
-            ciphers=tls_ciphers,
+def _detail(conn: Connection | None) -> str:
+    if conn is None:
+        return "sin conexión"
+    parts: list[str] = []
+    if conn.last_error:
+        parts.append(f"last_error={conn.last_error}")
+    if conn.result:
+        parts.append(
+            "result="
+            f"{conn.result.get('result')}, "
+            f"description={conn.result.get('description')}, "
+            f"message={conn.result.get('message')}"
         )
-        bind_user = self.format_login(username)
-        last_error = None
+    return " | ".join(parts) or "sin detalle entregado por ldap3"
 
-        for host in servers:
-            try:
-                server = Server(
-                    host,
-                    port=port,
-                    use_ssl=use_ssl,
-                    tls=tls,
-                    get_info=ALL,
-                    connect_timeout=connect_timeout,
-                )
-                conn = Connection(
-                    server,
-                    user=bind_user,
-                    password=password,
-                    authentication=SIMPLE,
-                    receive_timeout=receive_timeout,
-                    auto_bind=True,
-                )
-                conn.unbind()
-                return LdapResult(True, server=host, bind_user=bind_user)
-            except Exception as exc:
-                last_error = str(exc)
 
-        return LdapResult(False, bind_user=bind_user, error=last_error or "No se pudo autenticar contra LDAP")
+def authenticate_ldap(ldap_username: str, password: str) -> LDAPResult:
+    if not current_app.config["LDAP_ENABLED"]:
+        return LDAPResult(LDAPStatus.CONFIG_ERROR, "LDAP deshabilitado")
+    servers = current_app.config["LDAP_SERVERS"]
+    if not servers:
+        return LDAPResult(LDAPStatus.CONFIG_ERROR, "Sin servidores LDAP configurados")
+
+    use_ssl = current_app.config["LDAP_USE_SSL"]
+    start_tls = current_app.config["LDAP_START_TLS"]
+    auth_name = current_app.config["LDAP_AUTHENTICATION"]
+
+    if use_ssl and start_tls:
+        return LDAPResult(LDAPStatus.CONFIG_ERROR, "use_ssl y start_tls no pueden estar activos simultáneamente")
+    if auth_name == "SIMPLE" and not use_ssl and not start_tls:
+        return LDAPResult(LDAPStatus.CONFIG_ERROR, "SIMPLE bind requiere LDAPS o StartTLS")
+
+    try:
+        bind_user = _build_login(ldap_username)
+    except ValueError as exc:
+        return LDAPResult(LDAPStatus.CONFIG_ERROR, str(exc))
+
+    if auth_name == "SIMPLE":
+        authentication = SIMPLE
+    elif auth_name == "NTLM":
+        authentication = NTLM
+    else:
+        return LDAPResult(LDAPStatus.CONFIG_ERROR, f"authentication no soportado: {auth_name}")
+
+    validate = ssl.CERT_REQUIRED if current_app.config["LDAP_VALIDATE_CERTIFICATE"] else ssl.CERT_NONE
+    ca_cert_file = current_app.config["LDAP_CA_CERT_FILE"] or None
+    tls_ciphers = current_app.config.get("LDAP_TLS_CIPHERS", "").strip() or None
+    tls = Tls(validate=validate, ca_certs_file=ca_cert_file, ciphers=tls_ciphers)
+
+    details: list[str] = []
+    for host in servers:
+        conn: Connection | None = None
+        try:
+            server = Server(
+                host,
+                port=current_app.config["LDAP_PORT"],
+                use_ssl=use_ssl,
+                tls=tls,
+                get_info=NONE,
+                connect_timeout=current_app.config["LDAP_CONNECT_TIMEOUT"],
+            )
+            conn = Connection(
+                server,
+                user=bind_user,
+                password=password,
+                authentication=authentication,
+                receive_timeout=current_app.config["LDAP_RECEIVE_TIMEOUT"],
+                raise_exceptions=False,
+            )
+            if start_tls:
+                conn.open()
+                if conn.closed:
+                    details.append(f"{host}: OPEN falló: {_detail(conn)}")
+                    continue
+                if not conn.start_tls():
+                    details.append(f"{host}: STARTTLS falló: {_detail(conn)}")
+                    continue
+            if conn.bind():
+                return LDAPResult(LDAPStatus.SUCCESS)
+
+            result_code = int((conn.result or {}).get("result", -1))
+            if result_code == 49:
+                return LDAPResult(
+                    LDAPStatus.INVALID_CREDENTIALS,
+                    f"{host}: credenciales rechazadas: {_detail(conn)}",
+                )
+            details.append(f"{host}: BIND falló: {_detail(conn)}")
+        except LDAPException as exc:
+            details.append(f"{host}: {type(exc).__name__}: {exc}")
+        except (OSError, ssl.SSLError) as exc:
+            details.append(f"{host}: {type(exc).__name__}: {exc}")
+        except Exception as exc:
+            details.append(f"{host}: {type(exc).__name__}: {exc}")
+        finally:
+            if conn is not None:
+                try:
+                    conn.unbind()
+                except Exception:
+                    pass
+
+    return LDAPResult(LDAPStatus.UNAVAILABLE, "; ".join(details) or "LDAP no disponible")
+
+
+def ldap_status() -> dict:
+    return {
+        "enabled": bool(current_app.config.get("LDAP_ENABLED")),
+        "servers_configured": len(current_app.config.get("LDAP_SERVERS", [])),
+        "port": current_app.config.get("LDAP_PORT"),
+        "use_ssl": bool(current_app.config.get("LDAP_USE_SSL")),
+        "start_tls": bool(current_app.config.get("LDAP_START_TLS")),
+        "validate_certificate": bool(current_app.config.get("LDAP_VALIDATE_CERTIFICATE")),
+        "authentication": current_app.config.get("LDAP_AUTHENTICATION"),
+        "login_format": current_app.config.get("LDAP_LOGIN_FORMAT"),
+    }

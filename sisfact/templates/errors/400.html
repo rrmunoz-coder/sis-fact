@@ -1,0 +1,3 @@
+{% extends 'base.html' %}
+{% block title %}Solicitud inválida · Billing One{% endblock %}
+{% block body %}<main class="container error-page"><div class="card"><h2>Solicitud inválida</h2><p>{{ message or 'No fue posible procesar la solicitud.' }}</p><p class="meta">Incidente: {{ request_id }}</p></div></main>{% endblock %}
