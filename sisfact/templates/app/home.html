@@ -4,15 +4,15 @@
 <main class="container">
   <div class="card">
     <h2>Plataforma base operativa</h2>
-    <p class="muted">Núcleo técnico basado en ATLAS. El dominio Billing One se construye sobre esta base.</p>
+    <p class="muted">Núcleo técnico basado en ATLAS. El dominio Billing One se construye sobre contexto, insumos y controles desacoplados.</p>
     <div class="context-line">
       <span class="tag">Multiempresa</span><span class="tag">RUT emisor</span><span class="tag">Negocio</span><span class="tag">DOM</span><span class="tag">Ciclo</span>
     </div>
   </div>
   <div class="grid">
-    <section class="card"><h3>Contexto</h3><p>Empresa, RUT emisor, negocio, DOM y ciclo.</p></section>
-    <section class="card"><h3>Fuentes e insumos</h3><p>Oracle, SQL Server, APIs/WS y archivos según alcance.</p></section>
-    <section class="card"><h3>Controles</h3><p>Reglas de facturación desacopladas del origen técnico.</p></section>
+    <section class="card"><h3>Contexto</h3><p>Empresa, RUT emisor, negocio, DOM, ciclo y scopes.</p>{% if can('CONTEXT_VIEW') %}<p><a class="button" href="{{ url_for('context.index') }}">Abrir contexto</a></p>{% endif %}</section>
+    <section class="card"><h3>Fuentes e insumos</h3><p>Oracle, SQL Server, REST/SOAP y archivos según alcance.</p>{% if can('CONNECTION_VIEW') and can('SOURCE_VIEW') %}<p><a class="button" href="{{ url_for('integrations.index') }}">Abrir integraciones</a></p>{% endif %}</section>
+    <section class="card"><h3>Controles</h3><p>Reglas de facturación desacopladas del origen técnico.</p><p class="muted">Siguiente módulo funcional.</p></section>
     <section class="card"><h3>Seguridad</h3><p>Oracle autoriza; LDAP autentica; Flask mantiene sesión.</p>{% if can('USER_MANAGE') %}<p><a class="button" href="{{ url_for('users.index') }}">Administrar usuarios</a></p>{% endif %}</section>
   </div>
 </main>

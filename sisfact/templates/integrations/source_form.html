@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Insumo · Billing One{% endblock %}
+{% block body %}
+<main class="container">
+  <div class="card">
+    <h2>{{ 'Editar insumo' if item else 'Nuevo insumo' }}</h2>
+    <p class="muted">El insumo representa el dato funcional que necesita Billing One. El origen técnico puede cambiar sin cambiar el concepto lógico.</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        <div><label>Código</label><input name="source_code" value="{{ item.source_code if item else '' }}" {% if item %}readonly{% endif %} required></div>
+        <div><label>Nombre</label><input name="source_name" value="{{ item.source_name if item else '' }}" required></div>
+        <div><label>Tipo lógico</label><input name="logical_type" value="{{ item.logical_type if item else '' }}" placeholder="DOCUMENTOS_FACTURADOS" required></div>
+        <div><label>Conexión</label><select name="connection_id" required>{% for c in connections %}<option value="{{ c.connection_id }}" {% if item and item.connection_id==c.connection_id %}selected{% endif %}>{{ c.connection_name }} · {{ c.connection_type }}</option>{% endfor %}</select></div>
+        <div><label>Tipo extracción</label><select name="extraction_type" required>{% for t in ['SQL','REST','SOAP','FILE'] %}<option value="{{ t }}" {% if item and item.extraction_type==t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+        <div><label>Frecuencia esperada</label><input name="expected_frequency" value="{{ item.expected_frequency if item and item.expected_frequency else '' }}" placeholder="DAILY / POR_DOM / MANUAL"></div>
+        <div><label>Crítico</label><select name="critical_flag"><option value="N" {% if not item or item.critical_flag=='N' %}selected{% endif %}>No</option><option value="Y" {% if item and item.critical_flag=='Y' %}selected{% endif %}>Sí</option></select></div>
+      </div>
+      <label>Definición de extracción</label>
+      <textarea name="definition_text" rows="12" spellcheck="false" placeholder="SQL, endpoint relativo, operación SOAP o patrón de archivo">{{ item.definition_text if item else '' }}</textarea>
+      <p class="meta">La definición no debe contener credenciales. Para SQL se recomienda usar parámetros del contexto, no concatenar valores directamente.</p>
+      <label>Alcances donde aplica este insumo</label>
+      <div class="checkbox-grid">
+        {% for s in scopes %}
+        <label class="check"><input type="checkbox" name="scope_ids" value="{{ s.scope_id }}" {% if s.scope_id in selected_scope_ids %}checked{% endif %}> {{ s.scope_code }} · {{ s.company_name }} · {{ s.tax_id or 'Todos RUT' }} · {{ s.business_name or 'Todos negocios' }} · DOM {{ s.dom_code or 'Todos' }} · Ciclo {{ s.cycle_code or 'Todos' }}</label>
+        {% else %}<p class="muted">Primero debes crear al menos un alcance.</p>{% endfor %}
+      </div>
+      <button type="submit">Guardar</button> <a class="button secondary" href="{{ url_for('integrations.index') }}">Volver</a>
+    </form>
+  </div>
+</main>
+{% endblock %}

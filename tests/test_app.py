@@ -1,3 +1,5 @@
+import pytest
+
 from sisfact import create_app
 
 
@@ -32,3 +34,20 @@ def test_security_headers_present():
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers.get("X-Request-ID")
+
+
+def test_admin_modules_require_login_before_database_access():
+    client = app_client()
+    for path in (
+        "/administracion/usuarios",
+        "/administracion/contexto",
+        "/administracion/integraciones",
+    ):
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code in (302, 303)
+        assert "/login" in response.headers["Location"]
+
+
+def test_missing_real_config_fails_closed():
+    with pytest.raises(RuntimeError):
+        create_app(config_path="config-definitivamente-no-existe.ini")

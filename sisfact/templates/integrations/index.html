@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Fuentes e integraciones · Billing One{% endblock %}
+{% block body %}
+<main class="container">
+  <div class="card">
+    <h2>Fuentes e integraciones</h2>
+    <p class="muted">Las conexiones describen cómo acceder; los insumos describen qué dato funcional consume Billing One. Desactivar conserva la historia.</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+    {% if can('CONNECTION_MANAGE') %}<a class="button" href="{{ url_for('integrations.connection_create') }}">Nueva conexión</a>{% endif %}
+    {% if can('SOURCE_MANAGE') %}<a class="button" href="{{ url_for('integrations.source_create') }}">Nuevo insumo</a>{% endif %}
+  </div>
+
+  <section class="card">
+    <h3>Conexiones</h3>
+    <table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Credencial</th><th>Salud</th><th>Última prueba</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+    {% for c in connections %}
+      <tr>
+        <td>{{ c.connection_code }}</td><td>{{ c.connection_name }}</td><td>{{ c.connection_type }}</td><td>{{ c.credential_ref or 'No requiere' }}</td><td>{{ c.health_status or 'Sin probar' }}</td><td>{{ c.last_test_at or '-' }}</td><td>{{ c.active }}</td>
+        <td>
+          {% if can('CONNECTION_MANAGE') %}
+          <a href="{{ url_for('integrations.connection_edit', connection_id=c.connection_id) }}">Editar</a>
+          <form method="post" action="{{ url_for('integrations.connection_test', connection_id=c.connection_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Probar</button></form>
+          <form method="post" action="{{ url_for('integrations.connection_status', connection_id=c.connection_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if c.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if c.active=='Y' else 'Activar' }}</button></form>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}<tr><td colspan="8">No hay conexiones configuradas.</td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+
+  <section class="card">
+    <h3>Insumos</h3>
+    <table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo lógico</th><th>Conexión</th><th>Extracción</th><th>Frecuencia</th><th>Crítico</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+    {% for s in sources %}
+      <tr>
+        <td>{{ s.source_code }}</td><td>{{ s.source_name }}</td><td>{{ s.logical_type }}</td><td>{{ s.connection_name }}</td><td>{{ s.extraction_type }}</td><td>{{ s.expected_frequency or '-' }}</td><td>{{ s.critical_flag }}</td><td>{{ s.active }}</td>
+        <td>{% if can('SOURCE_MANAGE') %}<a href="{{ url_for('integrations.source_edit', data_source_id=s.data_source_id) }}">Editar</a><form method="post" action="{{ url_for('integrations.source_status', data_source_id=s.data_source_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if s.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if s.active=='Y' else 'Activar' }}</button></form>{% endif %}</td>
+      </tr>
+    {% else %}<tr><td colspan="9">No hay insumos configurados.</td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+</main>
+{% endblock %}

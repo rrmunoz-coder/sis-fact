@@ -9,12 +9,19 @@ Incluye:
 - pool Oracle;
 - LDAP y login seguro;
 - sesiones revocables;
-- roles y permisos;
-- mantenedor de usuarios;
+- roles, permisos y scopes de usuario;
+- mantenedor web de usuarios;
+- contexto multiempresa/RUT/negocio/DOM/ciclo y mantenedor web;
+- catálogo de conexiones e insumos con mantenedor web;
+- prueba de conexión Oracle, SQL Server, REST, SOAP y FILE;
 - auditoría;
-- contexto multiempresa/RUT/negocio/DOM/ciclo;
-- catálogo base de conexiones e insumos;
 - validadores Oracle greenfield;
-- herramientas de prueba y release.
+- herramientas de prueba, CI y operación Waitress/NSSM.
 
-La migración de objetos v0.1 existentes permanece pendiente de conteos reales antes de cualquier DROP.
+Pendiente para aplicar en el Oracle existente:
+- ejecutar conteos reales de v0.1;
+- generar migración específica;
+- aplicar y certificar DDL v0.2;
+- validar login/LDAP y conexiones en servidor.
+
+La migración de objetos v0.1 existentes permanece bloqueada hasta obtener los conteos reales antes de cualquier DROP.

@@ -73,9 +73,11 @@ def create_app(test_config: dict | None = None, config_path: str | None = None) 
     csrf.init_app(app)
 
     from .auth.routes import bp as auth_bp
+    from .context.routes import bp as context_bp
+    from .integrations.routes import bp as integrations_bp
     from .users.routes import bp as users_bp
     from .web import bp as web_bp
-    for blueprint in (auth_bp, users_bp, web_bp):
+    for blueprint in (auth_bp, users_bp, context_bp, integrations_bp, web_bp):
         app.register_blueprint(blueprint)
 
     @app.before_request

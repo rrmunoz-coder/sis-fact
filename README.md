@@ -12,80 +12,104 @@ Billing One es la plataforma multiempresa para control integral de facturación.
 
 La historia de `v0.1.0` permanece en Git. No se mantienen carpetas paralelas, ZIP ni parches como versión activa.
 
-## Principios de arquitectura
+## Arquitectura
 
 ```text
-SEGURIDAD TÉCNICA
+SEGURIDAD
 Oracle autoriza + LDAP valida password + Flask mantiene sesión
-
-CONTEXTO DE FACTURACIÓN
-Empresa + RUT emisor + Negocio + DOM + Ciclo
-
+        |
+        v
+CONTEXTO
+Empresa + RUT emisor + Negocio + DOM + Ciclo -> Scope
+        |
+        v
 ADQUISICIÓN
-Conexión -> Insumo funcional -> Alcance
-
-ORÍGENES
-Oracle | SQL Server | REST | SOAP | Archivos
-
+Conexión -> Insumo funcional -> Scope
+        |
+        +--> Oracle
+        +--> SQL Server
+        +--> REST / SOAP
+        +--> Archivos
+        |
+        v
 CONTROL
 Validación de insumo -> Regla de facturación -> Resultado/Auditoría
 ```
 
 El control depende del **insumo funcional y del contexto**, no del origen físico. Distintos negocios pueden usar fuentes completamente diferentes.
 
-## Naming Oracle obligatorio
+## Administración web disponible
 
-Todo objeto propio de Billing One comienza con `RM_CFACT_`.
-
-## Estructura v0.2.0
+Después del login:
 
 ```text
-sisfact/
-  auth/          autenticación LDAP/local
-  users/         administración de usuarios
-  templates/     interfaz web
-  static/        CSS
-  config.py      configuración estricta
-  db.py          pool Oracle
-  security.py    sesiones, roles y permisos
-  audit.py       auditoría before/after
-  web.py         health y panel base
-sql/
-  00_DIAGNOSTICO_PREVIO.sql
-  10_SECURITY_BASE.sql
-  11_VALIDAR_SECURITY.sql
-  12_BOOTSTRAP_ADMIN.sql
-  20_CONTEXT_BASE.sql
-  21_VALIDAR_CONTEXT.sql
-  30_INTEGRATION_BASE.sql
-  31_VALIDAR_INTEGRATION.sql
-  90_VALIDAR_BILLING_ONE.sql
-  99_ROLLBACK_GREENFIELD.sql
-  migration_v0_1/00_CONTEO_REAL_V0_1.sql
-scripts/
-tools/
-tests/
+/app
+  -> Administración de usuarios
+  -> Contexto de facturación
+  -> Fuentes e integraciones
 ```
 
-## Instalación greenfield
+### Usuarios
 
-> No usar este orden directamente sobre la instalación v0.1 existente hasta cerrar la migración.
+- Oracle autoriza usuario/rol/permisos.
+- LDAP valida password.
+- sesiones revocables y bloqueo por intentos;
+- asignación de scopes por Ver / Ejecutar / Configurar;
+- ADMIN tiene alcance global.
+
+### Contexto
+
+- Empresas;
+- RUT emisores;
+- Negocios;
+- DOM;
+- Ciclos;
+- scopes multidimensionales.
+
+### Fuentes e integraciones
+
+- conexiones Oracle, SQL Server, REST, SOAP y FILE;
+- conexión separada del insumo;
+- prueba de conexión;
+- scopes de aplicación;
+- insumos con tipo lógico y definición de extracción;
+- desactivación en vez de borrado físico.
+
+## Seguridad de credenciales
+
+`RM_CFACT_CONNECTION.CONFIG_JSON` no admite secretos. `CREDENTIAL_REF` apunta a una sección externa de `config.ini` o a un gestor de secretos futuro.
+
+El archivo `config.ini` real nunca se versiona.
+
+## Naming Oracle
+
+Todo objeto propio de Billing One comienza con:
 
 ```text
-00_DIAGNOSTICO_PREVIO.sql
-10_SECURITY_BASE.sql
-11_VALIDAR_SECURITY.sql
-12_BOOTSTRAP_ADMIN.sql
-20_CONTEXT_BASE.sql
-21_VALIDAR_CONTEXT.sql
-30_INTEGRATION_BASE.sql
-31_VALIDAR_INTEGRATION.sql
-90_VALIDAR_BILLING_ONE.sql
+RM_CFACT_
 ```
 
-En DBeaver ejecutar los archivos como **SQL Script** cuando contengan bloques PL/SQL terminados en `/`.
+## SQL v0.2.0
+
+```text
+sql/00_DIAGNOSTICO_PREVIO.sql
+sql/10_SECURITY_BASE.sql
+sql/11_VALIDAR_SECURITY.sql
+sql/12_BOOTSTRAP_ADMIN.sql
+sql/20_CONTEXT_BASE.sql
+sql/21_VALIDAR_CONTEXT.sql
+sql/30_INTEGRATION_BASE.sql
+sql/31_VALIDAR_INTEGRATION.sql
+sql/90_VALIDAR_BILLING_ONE.sql
+sql/99_ROLLBACK_GREENFIELD.sql
+sql/migration_v0_1/00_CONTEO_REAL_V0_1.sql
+```
+
+> No ejecutar los DDL greenfield directamente sobre la instalación v0.1 actual hasta cerrar la migración.
 
 ## Instalación Python
+
+Se recomienda Python 3.12 x64.
 
 ```cmd
 cd /d K:\@@@@@sis-fact
@@ -95,13 +119,11 @@ python -m venv .venv
 copy config.ini.example config.ini
 ```
 
-Generar un `secret_key` real:
+Generar `secret_key` real:
 
 ```cmd
 .venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"
 ```
-
-No versionar `config.ini`.
 
 ## Validación técnica
 
@@ -111,6 +133,7 @@ No versionar `config.ini`.
 .venv\Scripts\python.exe -m compileall -q sisfact tests tools scripts *.py
 .venv\Scripts\python.exe -m pytest -q
 .venv\Scripts\python.exe tools\test_oracle_connection.py
+.venv\Scripts\python.exe tools\test_ldap_transport.py
 .venv\Scripts\python.exe tools\test_ldap_bind.py
 ```
 
@@ -122,13 +145,13 @@ Desarrollo:
 run_dev.cmd
 ```
 
-Waitress / servicio:
+Waitress:
 
 ```cmd
 .venv\Scripts\python.exe service_entry.py
 ```
 
-Endpoints base:
+Endpoints:
 
 ```text
 http://127.0.0.1:5060/health
@@ -138,14 +161,22 @@ http://127.0.0.1:5060/app
 http://127.0.0.1:5060/me
 ```
 
-## Migración desde v0.1
+## Migración v0.1
 
-**No borrar tablas todavía.** Ejecutar primero:
+**No borrar tablas todavía.** Primero ejecutar:
 
 ```text
 sql/migration_v0_1/00_CONTEO_REAL_V0_1.sql
 ```
 
-`SISGAV2` es un objeto ajeno a Billing One y está expresamente fuera de cualquier limpieza o rollback de este proyecto.
+`SISGAV2` es un objeto ajeno a Billing One y está expresamente fuera de cualquier limpieza o rollback.
 
-Ver `docs/MIGRACION_V0_1_V0_2.md`.
+## Documentación
+
+```text
+docs/ARQUITECTURA_V0_2.md
+docs/INSTALACION_V0_2.md
+docs/MIGRACION_V0_1_V0_2.md
+docs/FUENTES_E_INTEGRACIONES_V0_2.md
+docs/ESTADO_PROYECTO.md
+```
