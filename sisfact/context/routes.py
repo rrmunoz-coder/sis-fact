@@ -5,6 +5,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from ..audit import record_event
 from ..errors import flash_exception
 from ..security import permissions_required
+from .origins import create_origin, list_origins, set_origin_status
 from .service import (
     catalogs_for_scope,
     create_flow,
@@ -32,7 +33,6 @@ def index():
         companies=list_simple_catalog("company"),
         issuers=list_issuers(),
         businesses=list_simple_catalog("business"),
-        origins=list_simple_catalog("origin"),
         emission_types=list_simple_catalog("emission_type"),
         flows=list_flows(),
         scopes=list_scopes(),
@@ -40,9 +40,44 @@ def index():
     )
 
 
+@bp.get("/origenes")
+@permissions_required("CONTEXT_VIEW")
+def origins():
+    return render_template("context/origins.html", origins=list_origins())
+
+
+@bp.post("/origenes/nuevo")
+@permissions_required("CONTEXT_MANAGE")
+def origin_create():
+    try:
+        origin_id, after = create_origin(
+            request.form.get("code", ""),
+            request.form.get("name", ""),
+        )
+        record_event("CONTEXT", "RM_CFACT_ORIGIN", "INSERT", origin_id, after=after)
+        flash("Origen creado correctamente.", "success")
+    except Exception as exc:
+        flash_exception(exc, "Administración de orígenes")
+    return redirect(url_for("context.origins"))
+
+
+@bp.post("/origenes/<int:origin_id>/estado")
+@permissions_required("CONTEXT_MANAGE")
+def origin_status(origin_id: int):
+    try:
+        before, after = set_origin_status(origin_id, request.form.get("active", "N"))
+        record_event("CONTEXT", "RM_CFACT_ORIGIN", "STATUS", origin_id, before, after)
+        flash("Estado del origen actualizado.", "success")
+    except Exception as exc:
+        flash_exception(exc, "Administración de orígenes")
+    return redirect(url_for("context.origins"))
+
+
 @bp.post("/catalogo/<kind>/nuevo")
 @permissions_required("CONTEXT_MANAGE")
 def create_catalog(kind: str):
+    if kind == "origin":
+        return origin_create()
     try:
         item_id, after = create_simple_catalog(
             kind,
@@ -59,6 +94,8 @@ def create_catalog(kind: str):
 @bp.post("/catalogo/<kind>/<int:item_id>/estado")
 @permissions_required("CONTEXT_MANAGE")
 def catalog_status(kind: str, item_id: int):
+    if kind == "origin":
+        return origin_status(item_id)
     try:
         before, after = set_simple_catalog_status(kind, item_id, request.form.get("active", "N"))
         record_event("CONTEXT", kind.upper(), "STATUS", item_id, before, after)
