@@ -1,44 +1,57 @@
-# Billing One v0.2.2
+# Billing One v0.2.3
 
 Fecha: 2026-08-11
 
-Estado: mejora de navegación y usabilidad sobre el modelo funcional v0.2.1.
+Estado: incorporación de mantenedor dedicado de Orígenes funcionales.
 
-## Navegación
+## Orígenes
 
-Se incorpora una barra de navegación persistente para usuarios autenticados:
-
-```text
-Inicio | Contexto | Fuentes e integraciones | Usuarios
-```
-
-Las opciones se muestran según permisos. La sección activa queda resaltada.
-
-En pantallas hijas se agrega una segunda barra contextual con navegación al menú padre, por ejemplo:
+El catálogo `RM_CFACT_ORIGIN` pasa a administrarse desde una pantalla propia:
 
 ```text
-← Volver a Fuentes e integraciones
-← Volver a Usuarios
-← Volver a Inicio
+Contexto -> Administrar Orígenes
 ```
 
-Los botones locales `Volver` se retiran de los formularios para evitar duplicidad de navegación.
+Permite:
+
+- listar orígenes activos e inactivos;
+- crear nuevos orígenes sin modificar código;
+- activar/reactivar;
+- desactivar lógicamente;
+- ver cantidad de scopes activos;
+- ver cantidad de flujos activos;
+- impedir la desactivación mientras existan scopes o flujos activos dependientes.
+
+Orígenes base actuales:
+
+```text
+ANDES
+AMDOCS
+SAP
+ACEPTA
+SGA
+DHT
+```
+
+La lista es extensible y no está cerrada a estos valores.
 
 ## Modelo funcional
 
-Sin cambios respecto de v0.2.1:
+Sin cambio estructural respecto de v0.2.1:
 
 ```text
 RUT emisor -> Negocio -> Origen -> Tipo de emisión -> Flujo operativo opcional
 ```
 
-`DOM` y `Ciclo` continúan modelados como segmentadores de flujo cuando corresponda.
+`DOM` y `Ciclo` continúan siendo segmentadores propios de determinados flujos.
 
 ## Base de datos
 
-**v0.2.2 no requiere cambios Oracle.**
+No cambia el esquema Oracle. Para una base v0.2.1/v0.2.2 ya existente se incorpora una carga idempotente de SGA y DHT:
 
-El parche Oracle v0.2.0 -> v0.2.1 sigue siendo el vigente para corregir el modelo de contexto y resultados.
+```text
+sql/migration_v0_2_2_to_v0_2_3/10_ORIGENES_BASE.sql
+```
 
 ## Seguridad
 
