@@ -22,14 +22,24 @@
 
   <section class="card">
     <h3>Orígenes configurados</h3>
-    <p class="muted">La baja es lógica. Un origen con scopes o flujos activos no puede desactivarse hasta retirar primero esas dependencias.</p>
+    <p class="muted">El código queda estable para preservar trazabilidad. El nombre puede modificarse. La baja es lógica y se bloquea mientras existan scopes o flujos activos.</p>
     <table>
-      <thead><tr><th>Código</th><th>Nombre</th><th>Scopes activos</th><th>Flujos activos</th><th>Estado</th><th>Acción</th></tr></thead>
+      <thead><tr><th>Código</th><th>Nombre</th><th>Scopes activos</th><th>Flujos activos</th><th>Estado</th><th>Acciones</th></tr></thead>
       <tbody>
       {% for o in origins %}
         <tr>
           <td>{{ o.origin_code }}</td>
-          <td>{{ o.origin_name }}</td>
+          <td>
+            {% if can('CONTEXT_MANAGE') %}
+            <form method="post" action="{{ url_for('context.origin_edit', origin_id=o.origin_id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input name="name" value="{{ o.origin_name }}" required>
+              <button type="submit">Guardar nombre</button>
+            </form>
+            {% else %}
+            {{ o.origin_name }}
+            {% endif %}
+          </td>
           <td>{{ o.active_scopes }}</td>
           <td>{{ o.active_flows }}</td>
           <td>{{ 'Activo' if o.active == 'Y' else 'Inactivo' }}</td>
