@@ -3,55 +3,28 @@
    MIGRACION v0.1 -> v0.2
    PASO 2 - RESTAURAR USUARIO v0.1 EN MODELO DE SEGURIDAD v0.2
 
-   PRERREQUISITOS:
-   1) 01_PREPARAR_MIGRACION_V0_1.sql ejecutado OK.
-   2) sql/10_SECURITY_BASE.sql ejecutado OK.
-   3) RM_CFACT_USER_V01 conserva exactamente 1 usuario.
-
-   No elimina el staging. Se conserva hasta validar login.
+   VERSION DBEAVER / ORACLE SQL PLANO
+   - Sin DECLARE / BEGIN / END /
+   - Idempotente para el usuario ya restaurado
+   - RM_CFACT_USER_V01 se conserva hasta validar el login web
    ============================================================ */
 
-DECLARE
-    v_stage_users NUMBER;
-    v_target_users NUMBER;
-    v_missing_roles NUMBER;
-BEGIN
-    SELECT COUNT(*) INTO v_stage_users FROM RM_CFACT_USER_V01;
-    SELECT COUNT(*) INTO v_target_users FROM RM_CFACT_USER;
+/* 1) Validacion previa: debe existir 1 usuario en staging. */
+SELECT COUNT(*) AS USUARIOS_STAGING
+FROM RM_CFACT_USER_V01;
 
-    SELECT COUNT(*)
-      INTO v_missing_roles
-      FROM RM_CFACT_USER_V01 U
-     WHERE NOT EXISTS (
-           SELECT 1
-             FROM RM_CFACT_ROLE R
-            WHERE UPPER(R.ROLE_CODE) = UPPER(U.ROLE_CODE)
-              AND R.ACTIVE = 'Y'
-     );
+/* 2) Validacion previa: el rol del usuario staging debe existir en v0.2. */
+SELECT
+    U.USERNAME,
+    U.ROLE_CODE AS ROLE_V01,
+    R.ROLE_ID,
+    R.ROLE_CODE AS ROLE_V02,
+    R.ACTIVE AS ROLE_ACTIVE
+FROM RM_CFACT_USER_V01 U
+LEFT JOIN RM_CFACT_ROLE R
+  ON UPPER(R.ROLE_CODE) = UPPER(U.ROLE_CODE);
 
-    IF v_stage_users <> 1 THEN
-        RAISE_APPLICATION_ERROR(
-            -20011,
-            'RESTAURACION DETENIDA: RM_CFACT_USER_V01 debe contener exactamente 1 fila.'
-        );
-    END IF;
-
-    IF v_target_users <> 0 THEN
-        RAISE_APPLICATION_ERROR(
-            -20012,
-            'RESTAURACION DETENIDA: RM_CFACT_USER nuevo debe estar vacio antes de restaurar.'
-        );
-    END IF;
-
-    IF v_missing_roles <> 0 THEN
-        RAISE_APPLICATION_ERROR(
-            -20013,
-            'RESTAURACION DETENIDA: el ROLE_CODE v0.1 no existe en RM_CFACT_ROLE v0.2.'
-        );
-    END IF;
-END;
-/
-
+/* 3) Restaurar el usuario en RM_CFACT_USER si aun no existe. */
 INSERT INTO RM_CFACT_USER (
     USERNAME,
     DISPLAY_NAME,
@@ -78,8 +51,14 @@ SELECT
 FROM RM_CFACT_USER_V01 U
 JOIN RM_CFACT_ROLE R
   ON UPPER(R.ROLE_CODE) = UPPER(U.ROLE_CODE)
- AND R.ACTIVE = 'Y';
+ AND R.ACTIVE = 'Y'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM RM_CFACT_USER N
+    WHERE LOWER(N.USERNAME) = LOWER(U.USERNAME)
+);
 
+/* 4) Crear la configuracion de autenticacion v0.2 si aun no existe. */
 INSERT INTO RM_CFACT_USER_AUTH (
     USER_ID,
     AUTH_TYPE,
@@ -91,32 +70,47 @@ INSERT INTO RM_CFACT_USER_AUTH (
 SELECT
     N.USER_ID,
     U.AUTH_TYPE,
-    CASE WHEN U.AUTH_TYPE = 'LDAP' THEN U.USERNAME ELSE NULL END,
+    CASE
+        WHEN UPPER(U.AUTH_TYPE) = 'LDAP' THEN U.USERNAME
+        ELSE NULL
+    END,
     1,
     0,
     SYSTIMESTAMP
 FROM RM_CFACT_USER_V01 U
 JOIN RM_CFACT_USER N
-  ON UPPER(N.USERNAME) = UPPER(U.USERNAME);
+  ON LOWER(N.USERNAME) = LOWER(U.USERNAME)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM RM_CFACT_USER_AUTH A
+    WHERE A.USER_ID = N.USER_ID
+);
 
 COMMIT;
 
-/* Validación del usuario migrado. */
+/* 5) Validacion del usuario migrado. */
 SELECT
     U.USER_ID,
     U.USERNAME,
     U.DISPLAY_NAME,
     U.EMAIL,
     R.ROLE_CODE,
-    U.ACTIVE,
+    U.ACTIVE AS USER_ACTIVE,
     A.AUTH_TYPE,
     A.LDAP_USERNAME,
     A.SESSION_VERSION,
-    A.FAILED_ATTEMPTS
+    A.FAILED_ATTEMPTS,
+    A.LOCKED_UNTIL,
+    A.LAST_LOGIN_SUCCESS,
+    A.LAST_LOGIN_FAILURE
 FROM RM_CFACT_USER U
-JOIN RM_CFACT_ROLE R ON R.ROLE_ID = U.ROLE_ID
-JOIN RM_CFACT_USER_AUTH A ON A.USER_ID = U.USER_ID;
+JOIN RM_CFACT_ROLE R
+  ON R.ROLE_ID = U.ROLE_ID
+JOIN RM_CFACT_USER_AUTH A
+  ON A.USER_ID = U.USER_ID
+ORDER BY U.USER_ID;
 
+/* 6) Resumen esperado: 1 / 1 / 1. */
 SELECT
     (SELECT COUNT(*) FROM RM_CFACT_USER_V01) AS USUARIO_STAGING,
     (SELECT COUNT(*) FROM RM_CFACT_USER) AS USUARIO_V02,
