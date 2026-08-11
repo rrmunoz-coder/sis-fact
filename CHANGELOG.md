@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.2.3 - 2026-08-11
+
+Mantenedor dedicado de Orígenes funcionales.
+
+### Contexto
+- Nueva pantalla `Contexto -> Administrar Orígenes`.
+- Alta de orígenes sin modificar código.
+- Activación/reactivación y baja lógica.
+- Visualización de scopes y flujos activos por origen.
+- Se bloquea la desactivación de un origen con dependencias activas.
+- El catálogo deja de quedar escondido dentro del mantenedor general de Contexto.
+
+### Datos base
+- Se agregan `SGA` y `DHT` a la carga base de orígenes.
+- Se incorpora `sql/migration_v0_2_2_to_v0_2_3/10_ORIGENES_BASE.sql`, idempotente y compatible con DBeaver.
+- No hay cambios de estructura Oracle.
+
+### Operación
+- API health actualizada a `0.2.3`.
+- Puerto web permanece en `5040`.
+
 ## v0.2.2 - 2026-08-11
 
 Mejora de navegación y usabilidad sin cambios de base de datos.
