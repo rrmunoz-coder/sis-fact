@@ -20,7 +20,7 @@ def test_health_json():
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["status"] == "OK"
-    assert payload["version"] == "0.2.3"
+    assert payload["version"] == "0.2.4"
 
 
 def test_login_visible_without_database_access():
@@ -43,6 +43,7 @@ def test_admin_modules_require_login_before_database_access():
         "/administracion/contexto",
         "/administracion/contexto/origenes",
         "/administracion/integraciones",
+        "/operacion/ejecuciones",
     ):
         response = client.get(path, follow_redirects=False)
         assert response.status_code in (302, 303)
