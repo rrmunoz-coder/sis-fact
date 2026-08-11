@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Orígenes · Billing One{% endblock %}
+{% block body %}
+<main class="container">
+  <div class="card">
+    <h2>Mantenedor de Orígenes</h2>
+    <p class="muted">Administra los orígenes funcionales de facturación: ANDES, AMDOCS, SAP, ACEPTA, SGA, DHT y los que se incorporen en el futuro. El origen es funcional y no equivale a la conexión técnica.</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+  </div>
+
+  {% if can('CONTEXT_MANAGE') %}
+  <section class="card">
+    <h3>Nuevo origen</h3>
+    <form class="form-grid" method="post" action="{{ url_for('context.origin_create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div><label>Código</label><input name="code" placeholder="SGA / DHT / OTRO" required></div>
+      <div><label>Nombre</label><input name="name" placeholder="Nombre funcional del origen" required></div>
+      <div class="form-action"><button type="submit">Agregar origen</button></div>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="card">
+    <h3>Orígenes configurados</h3>
+    <p class="muted">La baja es lógica. Un origen con scopes o flujos activos no puede desactivarse hasta retirar primero esas dependencias.</p>
+    <table>
+      <thead><tr><th>Código</th><th>Nombre</th><th>Scopes activos</th><th>Flujos activos</th><th>Estado</th><th>Acción</th></tr></thead>
+      <tbody>
+      {% for o in origins %}
+        <tr>
+          <td>{{ o.origin_code }}</td>
+          <td>{{ o.origin_name }}</td>
+          <td>{{ o.active_scopes }}</td>
+          <td>{{ o.active_flows }}</td>
+          <td>{{ 'Activo' if o.active == 'Y' else 'Inactivo' }}</td>
+          <td>
+            {% if can('CONTEXT_MANAGE') %}
+            <form method="post" action="{{ url_for('context.origin_status', origin_id=o.origin_id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="active" value="{{ 'N' if o.active=='Y' else 'Y' }}">
+              <button type="submit">{{ 'Desactivar' if o.active=='Y' else 'Activar' }}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">No hay orígenes configurados.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</main>
+{% endblock %}
