@@ -4,7 +4,7 @@ Billing One es la plataforma para control integral de facturación. Está separa
 
 ## Versión vigente
 
-- Versión: `v0.2.2`
+- Versión: `v0.2.3`
 - Rama vigente única: `main`
 - Repositorio: `rrmunoz-coder/sis-fact`
 - Ruta operativa: `K:\@@@@@sis-fact`
@@ -41,7 +41,7 @@ Estado + Completitud + Q esperada + Q emitida + Rechazos + Issues + Monto
 
 `DOM` y `Ciclo` no son dimensiones universales: son segmentadores propios de determinados orígenes/flujos.
 
-## Navegación web v0.2.2
+## Navegación web
 
 Después del login se muestra una barra persistente:
 
@@ -49,17 +49,39 @@ Después del login se muestra una barra persistente:
 Inicio | Contexto | Fuentes e integraciones | Usuarios
 ```
 
-Las opciones dependen de los permisos del usuario y la sección activa queda resaltada. Las pantallas hijas muestran una barra contextual `← Volver` hacia su menú padre, por lo que no es necesario depender de botones locales ni del historial del navegador.
+Las opciones dependen de los permisos del usuario y la sección activa queda resaltada. Las pantallas hijas muestran una barra contextual `← Volver` hacia su menú padre.
 
 ## Administración web
 
 ### Contexto
 - RUT emisores como raíz funcional;
 - Negocios;
-- Orígenes funcionales;
 - Tipos de emisión (`MASIVO`, `ONLINE`, extensible);
 - Flujos operativos y segmentador opcional (`DOM`, `CICLO`, `LOTE`, etc.);
 - scopes operativos.
+
+### Mantenedor de Orígenes v0.2.3
+
+Ruta:
+
+```text
+Contexto -> Administrar Orígenes
+```
+
+Permite alta, activación/reactivación y baja lógica de orígenes funcionales. La baja se bloquea si el origen mantiene scopes o flujos activos.
+
+Orígenes base actuales:
+
+```text
+ANDES
+AMDOCS
+SAP
+ACEPTA
+SGA
+DHT
+```
+
+El catálogo es extensible: otros orígenes se agregan desde la web sin modificar código.
 
 ### Fuentes e integraciones
 - conexiones Oracle, SQL Server, REST, SOAP y FILE;
@@ -74,12 +96,18 @@ Las opciones dependen de los permisos del usuario y la sección activa queda res
 
 ## Base de datos
 
-La versión UI `v0.2.2` **no requiere SQL adicional**. Para una base todavía en v0.2.0, primero aplicar:
+Para una base todavía en v0.2.0, primero aplicar:
 
 ```text
 sql/migration_v0_2_0_to_v0_2_1/00_PRECHECK.sql
 sql/migration_v0_2_0_to_v0_2_1/10_APPLY.sql
 sql/migration_v0_2_0_to_v0_2_1/20_VALIDATE.sql
+```
+
+Para una base v0.2.1/v0.2.2 ya instalada, v0.2.3 no cambia estructura. Solo incorpora SGA y DHT de forma idempotente:
+
+```text
+sql/migration_v0_2_2_to_v0_2_3/10_ORIGENES_BASE.sql
 ```
 
 > `SISGAV2` está expresamente fuera de cualquier migración, rollback o limpieza de Billing One.
