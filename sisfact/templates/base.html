@@ -54,8 +54,12 @@
         {% endif %}
         <span class="subnav-title">Administración de usuarios</span>
       {% elif endpoint.startswith('context.') %}
+        {% if endpoint != 'context.index' %}
+        <a class="back-link" href="{{ url_for('context.index') }}">← Volver a Contexto</a>
+        {% else %}
         <a class="back-link" href="{{ url_for('web.app_home') }}">← Volver a Inicio</a>
-        <span class="subnav-title">Contexto de facturación</span>
+        {% endif %}
+        <span class="subnav-title">{% if endpoint == 'context.origins' %}Mantenedor de Orígenes{% else %}Contexto de facturación{% endif %}</span>
       {% else %}
         <a class="back-link" href="{{ url_for('web.app_home') }}">← Volver a Inicio</a>
       {% endif %}
