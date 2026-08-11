@@ -32,6 +32,9 @@
       {% if can('CONNECTION_VIEW') and can('SOURCE_VIEW') %}
       <a class="nav-link{% if endpoint.startswith('integrations.') %} active{% endif %}" href="{{ url_for('integrations.index') }}">Fuentes e integraciones</a>
       {% endif %}
+      {% if can('CONTROL_VIEW') %}
+      <a class="nav-link{% if endpoint.startswith('execution.') %} active{% endif %}" href="{{ url_for('execution.index') }}">Ejecuciones</a>
+      {% endif %}
       {% if can('USER_MANAGE') %}
       <a class="nav-link{% if endpoint.startswith('users.') %} active{% endif %}" href="{{ url_for('users.index') }}">Usuarios</a>
       {% endif %}
@@ -46,6 +49,9 @@
         <a class="back-link" href="{{ url_for('web.app_home') }}">← Volver a Inicio</a>
         {% endif %}
         <span class="subnav-title">Fuentes e integraciones</span>
+      {% elif endpoint.startswith('execution.') %}
+        <a class="back-link" href="{{ url_for('web.app_home') }}">← Volver a Inicio</a>
+        <span class="subnav-title">Control de ejecuciones</span>
       {% elif endpoint.startswith('users.') %}
         {% if endpoint != 'users.index' %}
         <a class="back-link" href="{{ url_for('users.index') }}">← Volver a Usuarios</a>
