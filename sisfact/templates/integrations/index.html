@@ -4,10 +4,11 @@
 <main class="container">
   <div class="card">
     <h2>Fuentes e integraciones</h2>
-    <p class="muted">Conexión = cómo acceder técnicamente. Insumo = qué dato funcional se obtiene. Origen/Tipo = dónde aplica funcionalmente, definido por el alcance.</p>
+    <p class="muted">Conexión = cómo acceder técnicamente. Insumo = qué dato funcional se obtiene. La política define cuándo debe ejecutarse o esperarse.</p>
     {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
     {% if can('CONNECTION_MANAGE') %}<a class="button" href="{{ url_for('integrations.connection_create') }}">Nueva conexión</a>{% endif %}
     {% if can('SOURCE_MANAGE') %}<a class="button" href="{{ url_for('integrations.source_create') }}">Nuevo insumo</a>{% endif %}
+    {% if can('CONTROL_VIEW') %}<a class="button secondary" href="{{ url_for('execution.index') }}">Ver ejecuciones</a>{% endif %}
   </div>
 
   <section class="card">
@@ -30,13 +31,31 @@
 
   <section class="card">
     <h3>Insumos funcionales</h3>
-    <table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo lógico</th><th>Conexión</th><th>Extracción</th><th>Frecuencia</th><th>Crítico</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+    <table><thead><tr><th>Código</th><th>Nombre</th><th>Conexión</th><th>Extracción</th><th>Ejecución</th><th>Próxima</th><th>Última</th><th>Filas</th><th>Cola</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
     {% for s in sources %}
+      {% set e = execution_summary.get(s.data_source_id, {}) %}
       <tr>
-        <td>{{ s.source_code }}</td><td>{{ s.source_name }}</td><td>{{ s.logical_type }}</td><td>{{ s.connection_name }}</td><td>{{ s.extraction_type }}</td><td>{{ s.expected_frequency or '-' }}</td><td>{{ s.critical_flag }}</td><td>{{ s.active }}</td>
-        <td>{% if can('SOURCE_MANAGE') %}<a href="{{ url_for('integrations.source_edit', data_source_id=s.data_source_id) }}">Editar</a><form method="post" action="{{ url_for('integrations.source_status', data_source_id=s.data_source_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if s.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if s.active=='Y' else 'Activar' }}</button></form>{% endif %}</td>
+        <td>{{ s.source_code }}</td>
+        <td>{{ s.source_name }}<br><span class="meta">{{ s.logical_type }}</span></td>
+        <td>{{ s.connection_name }}</td>
+        <td>{{ s.extraction_type }}</td>
+        <td>
+          {{ e.execution_mode or 'SIN_POLITICA' }}
+          {% if e.execution_mode=='EXTERNAL' and e.external_executor %}<br><span class="meta">{{ e.external_executor }}</span>{% endif %}
+          {% if e.frequency_type %}<br><span class="meta">{{ e.frequency_type }}{% if e.run_time %} · {{ e.run_time }}{% endif %}</span>{% endif %}
+        </td>
+        <td>{{ e.next_due_at or '-' }}</td>
+        <td>{{ e.last_status or '-' }}{% if e.last_run_at %}<br><span class="meta">{{ e.last_run_at }}</span>{% endif %}</td>
+        <td>{{ e.last_rows_read if e.last_rows_read is not none else '-' }}</td>
+        <td>{{ e.open_queue or 0 }}</td>
+        <td>{{ s.active }}</td>
+        <td>
+          {% if can('SOURCE_MANAGE') %}<a href="{{ url_for('integrations.source_edit', data_source_id=s.data_source_id) }}">Editar</a>{% endif %}
+          {% if can('SOURCE_MANAGE') %}<form method="post" action="{{ url_for('integrations.source_status', data_source_id=s.data_source_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if s.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if s.active=='Y' else 'Activar' }}</button></form>{% endif %}
+          {% if can('CONTROL_EXECUTE') and s.active=='Y' and e.execution_mode != 'EXTERNAL' %}<form method="post" action="{{ url_for('execution.run_source', data_source_id=s.data_source_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Ejecutar ahora</button></form>{% endif %}
+        </td>
       </tr>
-    {% else %}<tr><td colspan="9">No hay insumos configurados.</td></tr>{% endfor %}
+    {% else %}<tr><td colspan="11">No hay insumos configurados.</td></tr>{% endfor %}
     </tbody></table>
   </section>
 </main>
