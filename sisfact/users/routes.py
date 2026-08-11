@@ -3,13 +3,13 @@ from __future__ import annotations
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
 from ..audit import record_event
+from ..context.service import list_scopes_active
 from ..errors import flash_exception
 from ..security import permissions_required
 from .service import (
     create_ldap_user,
     get_user,
     list_roles,
-    list_scope_catalog,
     list_users,
     reset_failed_attempts,
     set_user_status,
@@ -50,7 +50,7 @@ def create():
         "users/form.html",
         user=None,
         roles=list_roles(),
-        scopes=list_scope_catalog(),
+        scopes=list_scopes_active(),
         scope_access={},
     )
 
@@ -80,7 +80,7 @@ def edit(user_id: int):
         "users/form.html",
         user=user,
         roles=list_roles(),
-        scopes=list_scope_catalog(),
+        scopes=list_scopes_active(),
         scope_access=user.get("scope_access", {}),
     )
 

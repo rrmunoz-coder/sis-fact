@@ -17,7 +17,7 @@
       </div>
 
       <h3>Alcance por contexto</h3>
-      <p class="muted">Ejecutar implica Ver; Configurar implica Ejecutar y Ver. Para ADMIN estas asignaciones son informativas porque el rol tiene alcance global.</p>
+      <p class="muted">RUT emisor → Negocio → Origen → Tipo de emisión → Flujo. Ejecutar implica Ver; Configurar implica Ejecutar y Ver. Para ADMIN las asignaciones son informativas porque el rol tiene alcance global.</p>
       <table>
         <thead><tr><th>Scope</th><th>Contexto</th><th>Ver</th><th>Ejecutar</th><th>Configurar</th></tr></thead>
         <tbody>
@@ -25,7 +25,7 @@
           {% set a = scope_access.get(s.scope_id, {}) %}
           <tr>
             <td>{{ s.scope_code }}<br><span class="meta">{{ s.scope_name }}</span></td>
-            <td>{{ s.company_name }} · {{ s.tax_id or 'Todos RUT' }} · {{ s.business_name or 'Todos negocios' }} · DOM {{ s.dom_code or 'Todos' }} · Ciclo {{ s.cycle_code or 'Todos' }}</td>
+            <td>{{ s.tax_id }} · {{ s.business_name }} · {{ s.origin_name }} · {{ s.emission_type_name }}{% if s.flow_name %} · {{ s.flow_name }}{% endif %}{% if s.segment_label %} ({{ s.segment_label }}){% endif %}</td>
             <td><input class="small-check" type="checkbox" name="view_scope_ids" value="{{ s.scope_id }}" {% if a.get('view') %}checked{% endif %}></td>
             <td><input class="small-check" type="checkbox" name="execute_scope_ids" value="{{ s.scope_id }}" {% if a.get('execute') %}checked{% endif %}></td>
             <td><input class="small-check" type="checkbox" name="configure_scope_ids" value="{{ s.scope_id }}" {% if a.get('configure') %}checked{% endif %}></td>
