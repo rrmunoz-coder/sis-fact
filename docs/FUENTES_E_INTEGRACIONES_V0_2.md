@@ -1,16 +1,19 @@
-# Fuentes e Integraciones — Billing One v0.2.0
+# Fuentes e Integraciones — Billing One v0.2.1
 
 ## Concepto
 
-Billing One separa:
+Billing One separa cuatro conceptos:
 
 ```text
-CONEXIÓN = cómo acceder técnicamente
-INSUMO   = qué dato funcional necesita el control
-SCOPE    = dónde aplica ese dato
+ORIGEN FUNCIONAL = sistema/plataforma de negocio: ANDES, AMDOCS, SAP, ACEPTA...
+CONEXIÓN TÉCNICA  = cómo acceder: Oracle, SQL Server, REST, SOAP, FILE
+INSUMO            = qué dato funcional necesita el control
+SCOPE             = RUT emisor + Negocio + Origen + Tipo de emisión + Flujo opcional
 ```
 
-No todas las empresas o negocios utilizan todas las conexiones. Una conexión puede:
+La conexión no define el origen funcional. Un mismo tipo técnico puede servir a varios orígenes y un origen puede ser consumido por tecnologías distintas.
+
+Una conexión puede:
 
 - quedar limitada a uno o más scopes;
 - quedar sin filas en `RM_CFACT_CONNECTION_SCOPE`, lo que significa disponibilidad global;
@@ -22,7 +25,7 @@ Un insumo activo siempre debe tener al menos un scope.
 
 ```text
 /app
-  -> Fuentes e insumos
+  -> Fuentes e integraciones
   -> /administracion/integraciones
 ```
 
@@ -37,7 +40,7 @@ Con permiso `CONNECTION_MANAGE`:
 Con permiso `SOURCE_MANAGE`:
 
 - crear insumo;
-- cambiar origen técnico;
+- cambiar conexión técnica;
 - actualizar definición de extracción;
 - asignar scopes;
 - activar/desactivar.
@@ -66,14 +69,6 @@ o:
 credential.BRM_PROD
 ```
 
-En `config.ini` real:
-
-```ini
-[credential.BRM_PROD]
-user=usuario
-password=...
-```
-
 ### SQL Server
 
 ```json
@@ -87,8 +82,6 @@ password=...
 }
 ```
 
-Credencial externa con `user/password`.
-
 ### REST
 
 ```json
@@ -101,20 +94,11 @@ Credencial externa con `user/password`.
 }
 ```
 
-Tipos iniciales de autenticación soportados en prueba:
-
-- `NONE`;
-- `BASIC`;
-- `BEARER`;
-- `API_KEY`.
-
 ### SOAP
 
 ```json
 {"wsdl_url":"https://servicio/ws?wsdl","auth_type":"BASIC","timeout":15}
 ```
-
-La prueba v0.2 comprueba accesibilidad HTTP del WSDL. Las operaciones SOAP reales se implementan por insumo en la fase de integración funcional.
 
 ### Archivos
 
@@ -122,13 +106,9 @@ La prueba v0.2 comprueba accesibilidad HTTP del WSDL. Las operaciones SOAP reale
 {"path":"K:\\facturacion\\entrada","pattern":"*.csv"}
 ```
 
-La prueba valida acceso a la ruta y cantidad de elementos que cumplen el patrón.
-
 ## Seguridad de secretos
 
-`CONFIG_JSON` rechaza claves que parezcan `password`, `secret`, `token`, etc.
-
-Los secretos viven fuera del catálogo mediante `CREDENTIAL_REF`. No se muestran ni se escriben en auditoría.
+`CONFIG_JSON` rechaza claves que parezcan `password`, `secret`, `token`, etc. Los secretos viven fuera del catálogo mediante `CREDENTIAL_REF`.
 
 ## Insumos
 
@@ -144,14 +124,15 @@ CARGOS
 REAJUSTES
 ```
 
-Dos negocios pueden usar el mismo `LOGICAL_TYPE` con conexiones diferentes.
+El mismo `LOGICAL_TYPE` puede resolverse de forma distinta según scope.
 
-Ejemplo:
+Ejemplos:
 
 ```text
-ANDES / DOCUMENTOS_FACTURADOS -> Oracle BRM
-MOVIL / DOCUMENTOS_FACTURADOS -> SQL Server
-EMPRESAS / DOCUMENTOS_FACTURADOS -> API
+RUT A / FIJO / ANDES  / MASIVO -> DOCUMENTOS_FACTURADOS -> Oracle
+RUT A / FIJO / AMDOCS / ONLINE -> DOCUMENTOS_FACTURADOS -> Oracle
+RUT B / EMPRESAS / SAP / MASIVO -> DOCUMENTOS_FACTURADOS -> REST
+RUT C / FIJO / ACEPTA / ONLINE -> ESTADOS_SII -> SOAP/REST
 ```
 
-Los controles futuros deben resolver el insumo por scope y tipo lógico, no referenciar directamente una base física.
+Los controles deben resolver el insumo por scope y tipo lógico, no referenciar directamente una base física.

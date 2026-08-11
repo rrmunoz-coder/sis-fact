@@ -1,9 +1,10 @@
 /* ============================================================
-   BILLING ONE / SIS-FACT v0.2.0
+   BILLING ONE / SIS-FACT v0.2.1
    30_INTEGRATION_BASE.sql
-   Catálogo administrable de conexiones, insumos y alcances.
-   Los secretos NO se almacenan en CONFIG_JSON; CREDENTIAL_REF apunta
-   a configuración/gestor de secretos externo.
+   Catálogo administrable de conexiones técnicas, insumos y alcances.
+   El origen funcional se resuelve desde RM_CFACT_SCOPE; no se duplica
+   en la conexión técnica. Los secretos NO se almacenan en CONFIG_JSON;
+   CREDENTIAL_REF apunta a configuración/gestor de secretos externo.
    ============================================================ */
 
 CREATE TABLE RM_CFACT_CONNECTION (
@@ -166,6 +167,6 @@ COMMENT ON TABLE RM_CFACT_CONNECTION IS 'Conexiones técnicas administrables. CO
 COMMENT ON COLUMN RM_CFACT_CONNECTION.CREDENTIAL_REF IS 'Referencia a credencial externa; nunca contraseña en texto plano.';
 COMMENT ON TABLE RM_CFACT_DATA_SOURCE IS 'Insumo funcional obtenido mediante una conexión técnica.';
 COMMENT ON COLUMN RM_CFACT_DATA_SOURCE.LOGICAL_TYPE IS 'Concepto funcional: DOCUMENTOS_FACTURADOS, ESTADO_SII, PAGOS, ACTIVOS, etc.';
-COMMENT ON TABLE RM_CFACT_SOURCE_SCOPE IS 'Define en qué contexto empresa/RUT/negocio/DOM/ciclo aplica un insumo.';
+COMMENT ON TABLE RM_CFACT_SOURCE_SCOPE IS 'Define en qué scope RUT/negocio/origen/tipo/flujo aplica un insumo.';
 
 COMMIT;
