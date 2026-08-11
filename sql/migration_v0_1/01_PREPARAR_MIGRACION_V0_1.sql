@@ -3,106 +3,113 @@
    MIGRACION v0.1 -> v0.2
    PASO 1 - PREPARAR Y LIMPIAR MODELO v0.1
 
+   VERSION DBEAVER - SQL ORACLE PLANO
+   - Sin DECLARE / BEGIN / END
+   - Sin separador /
+   - Sin comandos SQL*Plus
+   - SISGAV2 NO SE TOCA
+
+   Evidencia validada el 11-08-2026:
+   - 10 tablas v0.1/legacy con 0 filas
+   - RM_CFACT_USER con 1 fila
+
    IMPORTANTE:
-   - Compatible con DBeaver.
-   - Ejecutar como SQL Script.
-   - SISGAV2 NO SE TOCA.
-   - Este script se niega a continuar si los conteos reales no coinciden
-     con la evidencia recibida el 11-08-2026.
-   - El único dato existente, RM_CFACT_USER (1 fila), se conserva mediante
-     renombre temporal a RM_CFACT_USER_V01.
+   Ejecutar primero las consultas PRECHECK. Si no coinciden con lo esperado,
+   NO ejecutar el bloque destructivo.
    ============================================================ */
 
-DECLARE
-    v_non_empty NUMBER;
-    v_users     NUMBER;
-    v_stage     NUMBER;
-BEGIN
-    SELECT
-          (SELECT COUNT(*) FROM RM_CFACT_AI_PROVIDER)
-        + (SELECT COUNT(*) FROM RM_CFACT_AUDIT_LOG)
-        + (SELECT COUNT(*) FROM RM_CFACT_DATA_SOURCE)
-        + (SELECT COUNT(*) FROM RM_CFACT_EXTRACTION_RUN)
-        + (SELECT COUNT(*) FROM RM_CFACT_INTEGRATION_CALL)
-        + (SELECT COUNT(*) FROM SIS_AI_PROVIDER)
-        + (SELECT COUNT(*) FROM SIS_AUDIT_LOG)
-        + (SELECT COUNT(*) FROM SIS_DATA_SOURCE)
-        + (SELECT COUNT(*) FROM SIS_EXTRACTION_RUN)
-        + (SELECT COUNT(*) FROM SIS_INTEGRATION_CALL)
-      INTO v_non_empty
-      FROM DUAL;
+/* ============================================================
+   A. PRECHECK - SOLO LECTURA
+   RESULTADO ESPERADO:
+   FILAS_TABLAS_QUE_DEBEN_ESTAR_VACIAS = 0
+   USUARIOS_V01 = 1
+   STAGING_EXISTENTE = 0
+   ============================================================ */
 
-    SELECT COUNT(*) INTO v_users FROM RM_CFACT_USER;
+SELECT
+      (SELECT COUNT(*) FROM RM_CFACT_AI_PROVIDER)
+    + (SELECT COUNT(*) FROM RM_CFACT_AUDIT_LOG)
+    + (SELECT COUNT(*) FROM RM_CFACT_DATA_SOURCE)
+    + (SELECT COUNT(*) FROM RM_CFACT_EXTRACTION_RUN)
+    + (SELECT COUNT(*) FROM RM_CFACT_INTEGRATION_CALL)
+    + (SELECT COUNT(*) FROM SIS_AI_PROVIDER)
+    + (SELECT COUNT(*) FROM SIS_AUDIT_LOG)
+    + (SELECT COUNT(*) FROM SIS_DATA_SOURCE)
+    + (SELECT COUNT(*) FROM SIS_EXTRACTION_RUN)
+    + (SELECT COUNT(*) FROM SIS_INTEGRATION_CALL)
+      AS FILAS_TABLAS_QUE_DEBEN_ESTAR_VACIAS
+FROM DUAL;
 
-    SELECT COUNT(*)
-      INTO v_stage
-      FROM USER_TABLES
-     WHERE TABLE_NAME = 'RM_CFACT_USER_V01';
+SELECT COUNT(*) AS USUARIOS_V01
+FROM RM_CFACT_USER;
 
-    IF v_non_empty <> 0 THEN
-        RAISE_APPLICATION_ERROR(
-            -20001,
-            'MIGRACION DETENIDA: se detectaron datos en tablas que debian estar vacias.'
-        );
-    END IF;
+SELECT COUNT(*) AS STAGING_EXISTENTE
+FROM USER_TABLES
+WHERE TABLE_NAME = 'RM_CFACT_USER_V01';
 
-    IF v_users <> 1 THEN
-        RAISE_APPLICATION_ERROR(
-            -20002,
-            'MIGRACION DETENIDA: RM_CFACT_USER debe contener exactamente 1 fila.'
-        );
-    END IF;
+SELECT 'SISGAV2_PROTEGIDA' AS CONTROL,
+       CASE
+           WHEN COUNT(*) = 1 THEN 'EXISTE - NO TOCAR'
+           ELSE 'NO EXISTE - SIN ACCION'
+       END AS ESTADO
+FROM USER_TABLES
+WHERE TABLE_NAME = 'SISGAV2';
 
-    IF v_stage <> 0 THEN
-        RAISE_APPLICATION_ERROR(
-            -20003,
-            'MIGRACION DETENIDA: ya existe RM_CFACT_USER_V01. Revisar migracion previa.'
-        );
-    END IF;
-END;
-/
+/* ============================================================
+   B. BLOQUE DE MIGRACION
+   EJECUTAR SOLO SI EL PRECHECK DIO:
+   0 / 1 / 0
+   ============================================================ */
 
-/* Conserva el único dato útil antes de retirar la tabla v0.1. */
+/* Conserva el unico usuario existente. */
 ALTER TABLE RM_CFACT_USER RENAME TO RM_CFACT_USER_V01;
 
-/* Retiro explícito del core v0.1 vacío. */
+/* Core RM_CFACT v0.1 vacio. */
 DROP TABLE RM_CFACT_EXTRACTION_RUN CASCADE CONSTRAINTS PURGE;
 DROP TABLE RM_CFACT_INTEGRATION_CALL CASCADE CONSTRAINTS PURGE;
 DROP TABLE RM_CFACT_DATA_SOURCE CASCADE CONSTRAINTS PURGE;
 DROP TABLE RM_CFACT_AUDIT_LOG CASCADE CONSTRAINTS PURGE;
 DROP TABLE RM_CFACT_AI_PROVIDER CASCADE CONSTRAINTS PURGE;
 
-/* Retiro explícito del legacy SIS-FACT vacío. */
+/* Legacy SIS-FACT vacio. Solo nombres explicitamente inventariados. */
 DROP TABLE SIS_EXTRACTION_RUN CASCADE CONSTRAINTS PURGE;
 DROP TABLE SIS_INTEGRATION_CALL CASCADE CONSTRAINTS PURGE;
 DROP TABLE SIS_DATA_SOURCE CASCADE CONSTRAINTS PURGE;
 DROP TABLE SIS_AUDIT_LOG CASCADE CONSTRAINTS PURGE;
 DROP TABLE SIS_AI_PROVIDER CASCADE CONSTRAINTS PURGE;
 
-/* SIS_USER no estaba presente en el inventario; se elimina solo si apareciera. */
-DECLARE
-    v_count NUMBER;
-BEGIN
-    SELECT COUNT(*) INTO v_count FROM USER_TABLES WHERE TABLE_NAME = 'SIS_USER';
-    IF v_count > 0 THEN
-        EXECUTE IMMEDIATE 'DROP TABLE SIS_USER CASCADE CONSTRAINTS PURGE';
-    END IF;
-END;
-/
+/* SIS_USER no se incluye porque no existia en el inventario real. */
+/* SISGAV2 queda expresamente fuera de este script. */
 
-/* Validación posterior al paso 1. */
+/* ============================================================
+   C. VALIDACION POSTERIOR - SOLO LECTURA
+   RESULTADO ESPERADO:
+   - solo RM_CFACT_USER_V01 entre los objetos v0.1 listados
+   - USUARIOS_STAGING = 1
+   - SISGAV2 sigue protegida
+   ============================================================ */
+
 SELECT TABLE_NAME,
        CASE
-           WHEN TABLE_NAME = 'RM_CFACT_USER_V01' THEN 'STAGING USUARIO v0.1 - CONSERVAR'
+           WHEN TABLE_NAME = 'RM_CFACT_USER_V01'
+               THEN 'STAGING USUARIO v0.1 - CONSERVAR'
            ELSE 'REVISAR'
        END AS ESTADO
 FROM USER_TABLES
 WHERE TABLE_NAME = 'RM_CFACT_USER_V01'
    OR TABLE_NAME IN (
-       'RM_CFACT_AI_PROVIDER','RM_CFACT_AUDIT_LOG','RM_CFACT_DATA_SOURCE',
-       'RM_CFACT_EXTRACTION_RUN','RM_CFACT_INTEGRATION_CALL','RM_CFACT_USER',
-       'SIS_AI_PROVIDER','SIS_AUDIT_LOG','SIS_DATA_SOURCE',
-       'SIS_EXTRACTION_RUN','SIS_INTEGRATION_CALL','SIS_USER'
+       'RM_CFACT_AI_PROVIDER',
+       'RM_CFACT_AUDIT_LOG',
+       'RM_CFACT_DATA_SOURCE',
+       'RM_CFACT_EXTRACTION_RUN',
+       'RM_CFACT_INTEGRATION_CALL',
+       'RM_CFACT_USER',
+       'SIS_AI_PROVIDER',
+       'SIS_AUDIT_LOG',
+       'SIS_DATA_SOURCE',
+       'SIS_EXTRACTION_RUN',
+       'SIS_INTEGRATION_CALL',
+       'SIS_USER'
    )
 ORDER BY TABLE_NAME;
 
@@ -110,7 +117,9 @@ SELECT COUNT(*) AS USUARIOS_STAGING
 FROM RM_CFACT_USER_V01;
 
 SELECT 'SISGAV2_PROTEGIDA' AS CONTROL,
-       CASE WHEN COUNT(*) = 1 THEN 'EXISTE - NO TOCAR'
-            ELSE 'NO EXISTE - SIN ACCION' END AS ESTADO
+       CASE
+           WHEN COUNT(*) = 1 THEN 'EXISTE - NO TOCAR'
+           ELSE 'NO EXISTE - SIN ACCION'
+       END AS ESTADO
 FROM USER_TABLES
 WHERE TABLE_NAME = 'SISGAV2';
