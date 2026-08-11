@@ -24,9 +24,12 @@ if not exist "%ROOT%.venv\Scripts\python.exe" (
   exit /b 12
 )
 
+rem Aislar Billing One de variables Flask heredadas de otros proyectos (por ejemplo ATLAS).
+set "FLASK_APP="
+set "FLASK_DEBUG=0"
+set "FLASK_ENV="
 set "PYTHONPATH=%ROOT%"
-set "FLASK_APP=wsgi:app"
 
-"%ROOT%.venv\Scripts\python.exe" -m flask --app wsgi:app run --host 0.0.0.0 --port 5060
+"%ROOT%.venv\Scripts\python.exe" -m flask --app wsgi:app run --no-debugger --no-reload --host 0.0.0.0 --port 5060
 set "EXITCODE=%ERRORLEVEL%"
 exit /b %EXITCODE%
