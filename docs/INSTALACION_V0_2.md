@@ -1,4 +1,4 @@
-# Instalación Billing One v0.2.1
+# Instalación Billing One v0.2.4
 
 ## 1. Ruta
 
@@ -29,12 +29,6 @@ host = 0.0.0.0
 port = 5040
 ```
 
-Generar `secret_key`:
-
-```cmd
-.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"
-```
-
 ## 4. Validación del paquete
 
 ```cmd
@@ -44,7 +38,7 @@ Generar `secret_key`:
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-## 5. Oracle greenfield v0.2.1
+## 5. Oracle greenfield v0.2.4
 
 ```text
 10_SECURITY_BASE.sql
@@ -56,12 +50,14 @@ Generar `secret_key`:
 31_VALIDAR_INTEGRATION.sql
 40_OPERATIONAL_BASE.sql
 41_VALIDAR_OPERATIONAL.sql
+50_EXECUTION_BASE.sql
+51_VALIDAR_EXECUTION.sql
 90_VALIDAR_BILLING_ONE.sql
 ```
 
-## 6. Migración desde la v0.2.0 ya instalada
+## 6. Migraciones
 
-No reinstalar seguridad. Aplicar únicamente:
+Si la base sigue en v0.2.0, primero aplicar la corrección funcional:
 
 ```text
 sql/migration_v0_2_0_to_v0_2_1/00_PRECHECK.sql
@@ -69,25 +65,24 @@ sql/migration_v0_2_0_to_v0_2_1/10_APPLY.sql
 sql/migration_v0_2_0_to_v0_2_1/20_VALIDATE.sql
 ```
 
-El precheck debe mostrar 0 filas en scopes, integraciones operativas, DOM y Ciclo antes de ejecutar `10_APPLY.sql`.
+Luego aplicar control de ejecución:
 
-El parche no modifica usuarios, LDAP, roles, permisos ni `SISGAV2`.
+```text
+sql/migration_v0_2_3_to_v0_2_4/00_PRECHECK.sql
+sql/migration_v0_2_3_to_v0_2_4/10_APPLY.sql
+sql/migration_v0_2_3_to_v0_2_4/20_VALIDATE.sql
+```
+
+El parche v0.2.4 crea `RM_CFACT_EXECUTION_POLICY` y `RM_CFACT_EXECUTION_QUEUE`, y agrega SGA/DHT si faltan. No modifica usuarios, LDAP, roles/permisos ni `SISGAV2`.
 
 ## 7. Infraestructura
 
-Oracle:
-
 ```cmd
 .venv\Scripts\python.exe tools\test_oracle_connection.py
-```
-
-LDAP web:
-
-```cmd
 .venv\Scripts\python.exe tools\test_ldap_bind.py
 ```
 
-## 8. Desarrollo
+## 8. Web
 
 ```cmd
 run_dev.cmd
@@ -97,24 +92,49 @@ Probar:
 
 ```text
 http://127.0.0.1:5040/health
-http://127.0.0.1:5040/api/v1/health
 http://127.0.0.1:5040/login
 http://127.0.0.1:5040/app
+http://127.0.0.1:5040/operacion/ejecuciones
 ```
 
-## 9. Waitress
+## 9. Scheduler y Worker
+
+Primero probar en consolas separadas:
 
 ```cmd
-.venv\Scripts\python.exe service_entry.py
+.venv\Scripts\python.exe scheduler_entry.py
+```
+
+```cmd
+.venv\Scripts\python.exe worker_entry.py
+```
+
+El scheduler solo crea cola. El worker ejecuta la adquisición.
+
+Después de validar pueden instalarse con NSSM:
+
+```text
+service/install_service.cmd
+service/install_scheduler.cmd
+service/install_worker.cmd
+```
+
+Servicios esperados:
+
+```text
+BillingOne_Web
+BillingOne_Scheduler
+BillingOne_Worker
 ```
 
 ## 10. Criterio técnico de cierre
 
 - release/higiene/compile/pytest OK;
-- validadores 11/21/31/41/90 OK;
+- validadores 11/21/31/41/51/90 OK;
 - Oracle OK;
 - LDAP bind SUCCESS;
 - login web correcto;
-- contexto muestra RUT → Negocio → Origen → Tipo → Flujo;
-- `RM_CFACT_DOM` y `RM_CFACT_CYCLE` no existen;
+- `Ejecuciones` visible según permisos;
+- una ejecución MANUAL pasa PENDING → RUNNING → SUCCESS/WARNING/ERROR;
+- scheduler encola una política SCHEDULED de prueba;
 - `SISGAV2` permanece intacta.
