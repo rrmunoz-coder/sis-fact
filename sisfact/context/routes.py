@@ -5,7 +5,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from ..audit import record_event
 from ..errors import flash_exception
 from ..security import permissions_required
-from .origins import create_origin, list_origins, set_origin_status
+from .origins import create_origin, list_origins, set_origin_status, update_origin_name
 from .service import (
     catalogs_for_scope,
     create_flow,
@@ -56,6 +56,18 @@ def origin_create():
         )
         record_event("CONTEXT", "RM_CFACT_ORIGIN", "INSERT", origin_id, after=after)
         flash("Origen creado correctamente.", "success")
+    except Exception as exc:
+        flash_exception(exc, "Administración de orígenes")
+    return redirect(url_for("context.origins"))
+
+
+@bp.post("/origenes/<int:origin_id>/editar")
+@permissions_required("CONTEXT_MANAGE")
+def origin_edit(origin_id: int):
+    try:
+        before, after = update_origin_name(origin_id, request.form.get("name", ""))
+        record_event("CONTEXT", "RM_CFACT_ORIGIN", "UPDATE", origin_id, before, after)
+        flash("Nombre del origen actualizado.", "success")
     except Exception as exc:
         flash_exception(exc, "Administración de orígenes")
     return redirect(url_for("context.origins"))
