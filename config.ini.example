@@ -1,7 +1,7 @@
 [flask]
 secret_key = REEMPLAZAR_CON_64_CARACTERES_ALEATORIOS
 host = 0.0.0.0
-port = 5060
+port = 5040
 session_cookie_secure = false
 
 [security]
@@ -31,6 +31,7 @@ thick_mode = true
 client_lib_dir = C:\\oracle\\instantclient
 
 [ldap]
+# LDAP se usa exclusivamente para autenticar el acceso web corporativo.
 enabled = true
 servers = ldap1.empresa.local,ldap2.empresa.local
 port = 636
@@ -48,8 +49,8 @@ connect_timeout = 5
 receive_timeout = 8
 
 [sqlserver_fact]
-# Se mantiene como referencia opcional. Las nuevas fuentes deben administrarse
-# desde Fuentes e Integraciones y usar CREDENTIAL_REF cuando corresponda.
+# Referencia opcional. Las nuevas fuentes deben administrarse desde
+# Fuentes e Integraciones y usar CREDENTIAL_REF cuando corresponda.
 enabled = false
 driver = ODBC Driver 18 for SQL Server
 server = SERVIDOR_SQL
@@ -60,8 +61,6 @@ password = PASSWORD_SQL
 encrypt = yes
 trust_server_certificate = no
 
-# Ejemplos de secciones externas referenciables desde RM_CFACT_CONNECTION.CREDENTIAL_REF.
-# Copia/renombra solo las que necesites en config.ini real. No subas config.ini.
 [credential.EXAMPLE_ORACLE]
 user = USUARIO_ORIGEN
 password = PASSWORD_ORIGEN

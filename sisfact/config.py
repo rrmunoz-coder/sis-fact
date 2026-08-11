@@ -67,7 +67,7 @@ def load_config(config_path: str | None = None) -> dict:
     return {
         "SECRET_KEY": secret_key,
         "APP_HOST": flask.get("host", "0.0.0.0"),
-        "APP_PORT": flask.getint("port", 5060),
+        "APP_PORT": flask.getint("port", 5040),
         "SESSION_COOKIE_HTTPONLY": True,
         "SESSION_COOKIE_SAMESITE": security.get("session_cookie_samesite", "Lax"),
         "SESSION_COOKIE_SECURE": secure_cookie,

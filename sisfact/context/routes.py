@@ -7,12 +7,15 @@ from ..errors import flash_exception
 from ..security import permissions_required
 from .service import (
     catalogs_for_scope,
+    create_flow,
     create_issuer,
     create_scope,
     create_simple_catalog,
+    list_flows,
     list_issuers,
     list_scopes,
     list_simple_catalog,
+    set_flow_status,
     set_issuer_status,
     set_scope_status,
     set_simple_catalog_status,
@@ -29,8 +32,9 @@ def index():
         companies=list_simple_catalog("company"),
         issuers=list_issuers(),
         businesses=list_simple_catalog("business"),
-        doms=list_simple_catalog("dom"),
-        cycles=list_simple_catalog("cycle"),
+        origins=list_simple_catalog("origin"),
+        emission_types=list_simple_catalog("emission_type"),
+        flows=list_flows(),
         scopes=list_scopes(),
         scope_catalogs=catalogs_for_scope(),
     )
@@ -68,8 +72,10 @@ def catalog_status(kind: str, item_id: int):
 @permissions_required("CONTEXT_MANAGE")
 def issuer_create():
     try:
+        company_text = (request.form.get("company_id") or "").strip()
+        company_id = int(company_text) if company_text else None
         issuer_id, after = create_issuer(
-            int(request.form.get("company_id") or 0),
+            company_id,
             request.form.get("tax_id", ""),
             request.form.get("legal_name", ""),
         )
@@ -89,6 +95,36 @@ def issuer_status(issuer_id: int):
         flash("Estado del RUT emisor actualizado.", "success")
     except Exception as exc:
         flash_exception(exc, "Administración de RUT emisor")
+    return redirect(url_for("context.index"))
+
+
+@bp.post("/flujos/nuevo")
+@permissions_required("CONTEXT_MANAGE")
+def flow_create():
+    try:
+        flow_id, after = create_flow(
+            int(request.form.get("origin_id") or 0),
+            int(request.form.get("emission_type_id") or 0),
+            request.form.get("flow_code", ""),
+            request.form.get("flow_name", ""),
+            request.form.get("segment_label"),
+        )
+        record_event("CONTEXT", "RM_CFACT_FLOW", "INSERT", flow_id, after=after)
+        flash("Flujo operativo creado correctamente.", "success")
+    except Exception as exc:
+        flash_exception(exc, "Administración de flujo operativo")
+    return redirect(url_for("context.index"))
+
+
+@bp.post("/flujos/<int:flow_id>/estado")
+@permissions_required("CONTEXT_MANAGE")
+def flow_status(flow_id: int):
+    try:
+        before, after = set_flow_status(flow_id, request.form.get("active", "N"))
+        record_event("CONTEXT", "RM_CFACT_FLOW", "STATUS", flow_id, before, after)
+        flash("Estado del flujo actualizado.", "success")
+    except Exception as exc:
+        flash_exception(exc, "Administración de flujo operativo")
     return redirect(url_for("context.index"))
 
 

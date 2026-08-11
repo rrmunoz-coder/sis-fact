@@ -1,11 +1,11 @@
-# Manifiesto Billing One v0.2.0
+# Manifiesto Billing One v0.2.1
 
 ## Contenido vigente
 
 ```text
 sisfact/       aplicación Flask
-sql/           DDL, validadores, migración y rollback greenfield
-docs/          arquitectura, instalación y migración
+sql/           DDL, validadores, migraciones y rollback greenfield
+docs/          arquitectura y modelo funcional
 scripts/       validación de release/higiene
 tools/         diagnóstico Oracle/LDAP
 tests/         pruebas automáticas
@@ -19,12 +19,19 @@ VERSION.md
 CHANGELOG.md
 ```
 
+## Modelo v0.2.1
+
+```text
+RUT emisor -> Negocio -> Origen -> Tipo de emisión -> Flujo opcional
+```
+
+Resultados operacionales: estado, completitud, cantidades, rechazos, issues y monto.
+
 ## Exclusiones obligatorias
 
 ```text
 config.ini
 .venv/
-.venv.venv/
 logs/
 __pycache__/
 *.pyc
@@ -37,4 +44,4 @@ credenciales o datos productivos
 
 ## Regla
 
-`main` contiene una sola versión vigente. La historia anterior se conserva en Git, no como carpetas paralelas.
+`main` contiene una sola versión vigente. La historia anterior se conserva en Git, no como carpetas paralelas. `SISGAV2` permanece fuera de Billing One.

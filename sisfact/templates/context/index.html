@@ -4,15 +4,26 @@
 <main class="container">
   <div class="card">
     <h2>Contexto de facturación</h2>
-    <p class="muted">Administra Empresa, RUT emisor, Negocio, DOM, Ciclo y sus combinaciones de alcance.</p>
+    <p class="muted">Jerarquía funcional: RUT emisor → Negocio → Origen → Tipo de emisión → Flujo operativo opcional. DOM y Ciclo ya no son dimensiones globales: se modelan como segmentadores del flujo que corresponda.</p>
     {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
   </div>
 
   {% if can('CONTEXT_MANAGE') %}
+  <section class="card">
+    <h3>Nuevo RUT emisor</h3>
+    <form class="form-grid" method="post" action="{{ url_for('context.issuer_create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div><label>RUT emisor</label><input name="tax_id" required></div>
+      <div><label>Razón social</label><input name="legal_name" required></div>
+      <div><label>Empresa/grupo (opcional)</label><select name="company_id"><option value="">Sin agrupación</option>{% for c in scope_catalogs.companies %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+      <div class="form-action"><button type="submit">Agregar emisor</button></div>
+    </form>
+  </section>
+
   <div class="grid">
-    {% for kind,title in [('company','Empresa'),('business','Negocio'),('dom','DOM'),('cycle','Ciclo')] %}
+    {% for kind,title in [('business','Negocio'),('origin','Origen funcional')] %}
     <section class="card">
-      <h3>Nueva {{ title }}</h3>
+      <h3>Nuevo {{ title }}</h3>
       <form method="post" action="{{ url_for('context.create_catalog', kind=kind) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>Código</label><input name="code" required>
@@ -21,31 +32,44 @@
       </form>
     </section>
     {% endfor %}
+    <section class="card">
+      <h3>Tipo de emisión</h3>
+      <p class="muted">Base inicial: MASIVO y ONLINE. Puedes agregar otros si el negocio lo requiere.</p>
+      <form method="post" action="{{ url_for('context.create_catalog', kind='emission_type') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Código</label><input name="code" required>
+        <label>Nombre</label><input name="name" required>
+        <button type="submit">Agregar</button>
+      </form>
+    </section>
   </div>
 
   <section class="card">
-    <h3>Nuevo RUT emisor</h3>
-    <form class="form-grid" method="post" action="{{ url_for('context.issuer_create') }}">
+    <h3>Nuevo flujo operativo</h3>
+    <p class="muted">El flujo especifica cómo se expresa una emisión dentro de un origen y tipo. Ejemplos: ANDES/MASIVO con segmentador DOM; AMDOCS/MASIVO con segmentador CICLO; AMDOCS/ONLINE con BILL_NOW.</p>
+    <form class="form-grid" method="post" action="{{ url_for('context.flow_create') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div><label>Empresa</label><select name="company_id" required>{% for c in scope_catalogs.companies %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
-      <div><label>RUT emisor</label><input name="tax_id" required></div>
-      <div><label>Razón social</label><input name="legal_name" required></div>
-      <div class="form-action"><button type="submit">Agregar emisor</button></div>
+      <div><label>Origen</label><select name="origin_id" required>{% for x in scope_catalogs.origins %}<option value="{{ x.id }}">{{ x.name }}</option>{% endfor %}</select></div>
+      <div><label>Tipo de emisión</label><select name="emission_type_id" required>{% for x in scope_catalogs.emission_types %}<option value="{{ x.id }}">{{ x.name }}</option>{% endfor %}</select></div>
+      <div><label>Código flujo</label><input name="flow_code" placeholder="BILL_NOW / MASIVO_ANDES" required></div>
+      <div><label>Nombre flujo</label><input name="flow_name" required></div>
+      <div><label>Segmentador (opcional)</label><input name="segment_label" placeholder="DOM / CICLO / LOTE"></div>
+      <div class="form-action"><button type="submit">Crear flujo</button></div>
     </form>
   </section>
 
   <section class="card">
     <h3>Nuevo alcance</h3>
-    <p class="muted">Los campos opcionales vacíos representan “todos” dentro de la empresa. La prioridad menor se resuelve primero.</p>
+    <p class="muted">Un alcance representa una combinación operativa concreta. El flujo es opcional; si se informa, debe pertenecer al mismo Origen y Tipo de emisión.</p>
     <form class="form-grid" method="post" action="{{ url_for('context.scope_create') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div><label>Código</label><input name="scope_code" required></div>
       <div><label>Nombre</label><input name="scope_name" required></div>
-      <div><label>Empresa</label><select name="company_id" required>{% for c in scope_catalogs.companies %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
-      <div><label>RUT emisor</label><select name="issuer_id"><option value="">Todos</option>{% for i in scope_catalogs.issuers %}<option value="{{ i.issuer_id }}">{{ i.company_name }} · {{ i.tax_id }}</option>{% endfor %}</select></div>
-      <div><label>Negocio</label><select name="business_id"><option value="">Todos</option>{% for x in scope_catalogs.businesses %}<option value="{{ x.id }}">{{ x.name }}</option>{% endfor %}</select></div>
-      <div><label>DOM</label><select name="dom_id"><option value="">Todos</option>{% for x in scope_catalogs.doms %}<option value="{{ x.id }}">{{ x.code }}</option>{% endfor %}</select></div>
-      <div><label>Ciclo</label><select name="cycle_id"><option value="">Todos</option>{% for x in scope_catalogs.cycles %}<option value="{{ x.id }}">{{ x.name }}</option>{% endfor %}</select></div>
+      <div><label>RUT emisor</label><select name="issuer_id" required>{% for i in scope_catalogs.issuers %}<option value="{{ i.issuer_id }}">{{ i.tax_id }} · {{ i.legal_name }}</option>{% endfor %}</select></div>
+      <div><label>Negocio</label><select name="business_id" required>{% for x in scope_catalogs.businesses %}<option value="{{ x.id }}">{{ x.name }}</option>{% endfor %}</select></div>
+      <div><label>Origen</label><select name="origin_id" required>{% for x in scope_catalogs.origins %}<option value="{{ x.id }}">{{ x.name }}</option>{% endfor %}</select></div>
+      <div><label>Tipo de emisión</label><select name="emission_type_id" required>{% for x in scope_catalogs.emission_types %}<option value="{{ x.id }}">{{ x.name }}</option>{% endfor %}</select></div>
+      <div><label>Flujo operativo</label><select name="flow_id"><option value="">Sin flujo específico</option>{% for f in scope_catalogs.flows %}<option value="{{ f.flow_id }}">{{ f.origin_code }} · {{ f.emission_type_code }} · {{ f.flow_name }}{% if f.segment_label %} ({{ f.segment_label }}){% endif %}</option>{% endfor %}</select></div>
       <div><label>Prioridad</label><input type="number" min="0" name="priority_order" value="100"></div>
       <div><label>Vigente desde</label><input type="date" name="valid_from"></div>
       <div><label>Vigente hasta</label><input type="date" name="valid_to"></div>
@@ -56,17 +80,34 @@
 
   <section class="card">
     <h3>Alcances configurados</h3>
-    <table><thead><tr><th>Código</th><th>Empresa</th><th>RUT</th><th>Negocio</th><th>DOM</th><th>Ciclo</th><th>Prioridad</th><th>Estado</th><th></th></tr></thead><tbody>
+    <table><thead><tr><th>Código</th><th>RUT emisor</th><th>Negocio</th><th>Origen</th><th>Tipo</th><th>Flujo</th><th>Segmentador</th><th>Estado</th><th></th></tr></thead><tbody>
     {% for s in scopes %}
-      <tr><td>{{ s.scope_code }}<br><span class="meta">{{ s.scope_name }}</span></td><td>{{ s.company_name }}</td><td>{{ s.tax_id or 'Todos' }}</td><td>{{ s.business_name or 'Todos' }}</td><td>{{ s.dom_code or 'Todos' }}</td><td>{{ s.cycle_code or 'Todos' }}</td><td>{{ s.priority_order }}</td><td>{{ s.active }}</td><td>{% if can('CONTEXT_MANAGE') %}<form method="post" action="{{ url_for('context.scope_status', scope_id=s.scope_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if s.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if s.active=='Y' else 'Activar' }}</button></form>{% endif %}</td></tr>
+      <tr>
+        <td>{{ s.scope_code }}<br><span class="meta">{{ s.scope_name }}</span></td>
+        <td>{{ s.tax_id }}<br><span class="meta">{{ s.legal_name }}</span></td>
+        <td>{{ s.business_name }}</td>
+        <td>{{ s.origin_name }}</td>
+        <td>{{ s.emission_type_name }}</td>
+        <td>{{ s.flow_name or '-' }}</td>
+        <td>{{ s.segment_label or '-' }}</td>
+        <td>{{ s.active }}</td>
+        <td>{% if can('CONTEXT_MANAGE') %}<form method="post" action="{{ url_for('context.scope_status', scope_id=s.scope_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if s.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if s.active=='Y' else 'Activar' }}</button></form>{% endif %}</td>
+      </tr>
     {% else %}<tr><td colspan="9">Sin alcances configurados.</td></tr>{% endfor %}
     </tbody></table>
   </section>
 
-  <section class="card"><h3>RUT emisores</h3><table><thead><tr><th>Empresa</th><th>RUT</th><th>Razón social</th><th>Estado</th><th></th></tr></thead><tbody>{% for i in issuers %}<tr><td>{{ i.company_name }}</td><td>{{ i.tax_id }}</td><td>{{ i.legal_name }}</td><td>{{ i.active }}</td><td>{% if can('CONTEXT_MANAGE') %}<form method="post" action="{{ url_for('context.issuer_status', issuer_id=i.issuer_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if i.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if i.active=='Y' else 'Activar' }}</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></section>
+  <section class="card">
+    <h3>Flujos operativos</h3>
+    <table><thead><tr><th>Origen</th><th>Tipo</th><th>Código</th><th>Nombre</th><th>Segmentador</th><th>Estado</th><th></th></tr></thead><tbody>
+    {% for f in flows %}<tr><td>{{ f.origin_name }}</td><td>{{ f.emission_type_name }}</td><td>{{ f.flow_code }}</td><td>{{ f.flow_name }}</td><td>{{ f.segment_label or '-' }}</td><td>{{ f.active }}</td><td>{% if can('CONTEXT_MANAGE') %}<form method="post" action="{{ url_for('context.flow_status', flow_id=f.flow_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if f.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if f.active=='Y' else 'Activar' }}</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="7">Sin flujos configurados.</td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+
+  <section class="card"><h3>RUT emisores</h3><table><thead><tr><th>RUT</th><th>Razón social</th><th>Empresa/grupo</th><th>Estado</th><th></th></tr></thead><tbody>{% for i in issuers %}<tr><td>{{ i.tax_id }}</td><td>{{ i.legal_name }}</td><td>{{ i.company_name or '-' }}</td><td>{{ i.active }}</td><td>{% if can('CONTEXT_MANAGE') %}<form method="post" action="{{ url_for('context.issuer_status', issuer_id=i.issuer_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if i.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if i.active=='Y' else 'Activar' }}</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></section>
 
   <div class="grid">
-    {% for kind,title,items in [('company','Empresas',companies),('business','Negocios',businesses),('dom','DOM',doms),('cycle','Ciclos',cycles)] %}
+    {% for kind,title,items in [('business','Negocios',businesses),('origin','Orígenes',origins),('emission_type','Tipos de emisión',emission_types),('company','Empresas/grupos opcionales',companies)] %}
     <section class="card"><h3>{{ title }}</h3><table><thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th></th></tr></thead><tbody>{% for x in items %}<tr><td>{{ x.code }}</td><td>{{ x.name }}</td><td>{{ x.active }}</td><td>{% if can('CONTEXT_MANAGE') %}<form method="post" action="{{ url_for('context.catalog_status', kind=kind, item_id=x.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if x.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if x.active=='Y' else 'Activar' }}</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></section>
     {% endfor %}
   </div>

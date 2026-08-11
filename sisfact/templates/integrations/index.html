@@ -4,14 +4,14 @@
 <main class="container">
   <div class="card">
     <h2>Fuentes e integraciones</h2>
-    <p class="muted">Las conexiones describen cómo acceder; los insumos describen qué dato funcional consume Billing One. Desactivar conserva la historia.</p>
+    <p class="muted">Conexión = cómo acceder técnicamente. Insumo = qué dato funcional se obtiene. Origen/Tipo = dónde aplica funcionalmente, definido por el alcance.</p>
     {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
     {% if can('CONNECTION_MANAGE') %}<a class="button" href="{{ url_for('integrations.connection_create') }}">Nueva conexión</a>{% endif %}
     {% if can('SOURCE_MANAGE') %}<a class="button" href="{{ url_for('integrations.source_create') }}">Nuevo insumo</a>{% endif %}
   </div>
 
   <section class="card">
-    <h3>Conexiones</h3>
+    <h3>Conexiones técnicas</h3>
     <table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Credencial</th><th>Salud</th><th>Última prueba</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
     {% for c in connections %}
       <tr>
@@ -29,7 +29,7 @@
   </section>
 
   <section class="card">
-    <h3>Insumos</h3>
+    <h3>Insumos funcionales</h3>
     <table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo lógico</th><th>Conexión</th><th>Extracción</th><th>Frecuencia</th><th>Crítico</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
     {% for s in sources %}
       <tr>

@@ -8,6 +8,6 @@ if __name__ == "__main__":
     serve(
         app,
         host=app.config.get("APP_HOST", "0.0.0.0"),
-        port=int(app.config.get("APP_PORT", 5060)),
+        port=int(app.config.get("APP_PORT", 5040)),
         threads=8,
     )

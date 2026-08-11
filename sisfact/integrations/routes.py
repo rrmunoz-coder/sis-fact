@@ -3,6 +3,7 @@ from __future__ import annotations
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
 from ..audit import record_event
+from ..context.service import list_scopes_active
 from ..errors import flash_exception
 from ..security import permissions_required
 from .service import (
@@ -12,7 +13,6 @@ from .service import (
     get_connection,
     get_source,
     list_connections,
-    list_scopes_active,
     list_sources,
     set_connection_status,
     set_source_status,

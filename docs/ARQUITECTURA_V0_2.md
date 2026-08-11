@@ -1,94 +1,76 @@
-# Arquitectura Billing One v0.2.0
+# Arquitectura Billing One v0.2.1
 
-## 1. Decisión base
-
-Billing One permanece separado funcionalmente de ATLAS. Se reutiliza el **patrón técnico probado de ATLAS S.2.0**, no su dominio de negocio.
-
-Se hereda/adapta:
-- application factory Flask;
-- configuración estricta;
-- pool Oracle y Thick Mode;
-- LDAP;
-- sesiones revocables;
-- rate limiting;
-- CSRF y headers HTTP;
-- auditoría;
-- logging y request-id;
-- roles/permisos;
-- mantenedor de usuarios;
-- Waitress y disciplina de validación.
-
-No se hereda:
-- proyectos;
-- tareas;
-- horas;
-- costos;
-- aprobaciones;
-- unidades organizacionales ATLAS;
-- tablas `GT_*`.
-
-## 2. Capas Billing One
+## Capas
 
 ```text
-SEGURIDAD
-  usuario / rol / permiso / sesión / LDAP / auditoría
-
-CONTEXTO
-  empresa / RUT emisor / negocio / DOM / ciclo / scope
-
+IDENTIDAD
+LDAP valida contraseña corporativa
+        |
+AUTORIZACIÓN
+Oracle: usuario + rol + permisos + scopes
+        |
+CONTEXTO FUNCIONAL
+RUT emisor -> Negocio -> Origen -> Tipo de emisión -> Flujo opcional
+        |
 ADQUISICIÓN
-  conexión / insumo / parámetros / alcance / extracción / llamada
-
-DOMINIO DE CONTROL
-  pendiente de siguientes fases: documentos, emisión, SII, pagos,
-  controles, resultados, casos y paneles
+Conexión técnica -> Insumo funcional -> Scope
+        |
+TRAZABILIDAD
+Extracción / llamada de integración
+        |
+RESULTADO
+Estado + Completitud + Q emitida + Rechazos + Issues + Monto
 ```
 
-## 3. Contexto multidimensional
+## Contexto
 
-`RM_CFACT_SCOPE` combina dimensiones sin imponer una jerarquía rígida.
+La raíz funcional es `RM_CFACT_ISSUER` (RUT emisor). `RM_CFACT_COMPANY` se conserva como agrupación opcional y no pertenece al scope operativo.
 
-- `COMPANY_ID` es obligatorio.
-- `ISSUER_ID`, `BUSINESS_ID`, `DOM_ID` y `CYCLE_ID` pueden ser `NULL` para representar un alcance más general.
-- `PRIORITY_ORDER` permite resolver reglas más específicas antes de reglas genéricas.
-- Los usuarios reciben scopes mediante `RM_CFACT_USER_SCOPE`.
+`RM_CFACT_SCOPE` relaciona obligatoriamente:
 
-## 4. Conexión versus insumo
+- RUT emisor;
+- Negocio;
+- Origen;
+- Tipo de emisión;
+- Flujo opcional.
 
-Una conexión describe **cómo llegar** a un sistema.
+`RM_CFACT_FLOW` pertenece a una combinación Origen + Tipo. La FK compuesta de Scope impide asociar un flujo a un origen/tipo distinto.
 
-Un insumo describe **qué dato funcional** necesita Billing One.
+### DOM y Ciclo
 
-Ejemplo:
+No son dimensiones universales. `RM_CFACT_FLOW.SEGMENT_LABEL` define el nombre del segmentador cuando existe; `RM_CFACT_EMISSION_STATUS.SEGMENT_VALUE` guarda el valor observado en runtime.
+
+Ejemplos:
 
 ```text
-CONEXIÓN ORACLE_BRM_PROD
-  -> DOCUMENTOS_FACTURADOS
-  -> CARGOS
-  -> PAGOS
-
-CONEXIÓN API_FACTURADOR
-  -> DOCUMENTOS_DTE
-  -> ESTADOS_SII
+ANDES  / MASIVO / flujo FACT_MASIVA / SEGMENT_LABEL=DOM   / SEGMENT_VALUE=22
+AMDOCS / MASIVO / flujo FACT_MASIVA / SEGMENT_LABEL=CICLO / SEGMENT_VALUE=22
+AMDOCS / ONLINE / flujo BILL_NOW   / sin segmentador
 ```
 
-Un mismo `LOGICAL_TYPE` puede provenir de distintas tecnologías según el scope.
+## Origen funcional vs conexión técnica
 
-## 5. Seguridad de credenciales
+`RM_CFACT_ORIGIN` describe el sistema/plataforma de negocio: ANDES, AMDOCS, SAP, ACEPTA, etc.
 
-`RM_CFACT_CONNECTION.CONFIG_JSON` solo contiene parámetros no secretos.
+`RM_CFACT_CONNECTION` describe el transporte/acceso: Oracle, SQL Server, REST, SOAP o archivo.
 
-`CREDENTIAL_REF` apunta a una referencia externa. No se deben almacenar passwords, tokens o secretos en texto plano dentro de las tablas de catálogo ni en GitHub.
+No se duplican. La relación funcional de un insumo con su origen se obtiene a través de `RM_CFACT_SOURCE_SCOPE -> RM_CFACT_SCOPE`.
 
-## 6. Validación
+## Resultado operacional
 
-Cada bloque tiene DDL y validador:
+`RM_CFACT_EMISSION_STATUS` persiste el resumen de una emisión/control por scope, periodo y segmento. `RM_CFACT_ISSUE` detalla incidencias opcionales.
+
+Este modelo habilita el panel futuro:
 
 ```text
-10_SECURITY_BASE.sql      -> 11_VALIDAR_SECURITY.sql
-20_CONTEXT_BASE.sql       -> 21_VALIDAR_CONTEXT.sql
-30_INTEGRATION_BASE.sql   -> 31_VALIDAR_INTEGRATION.sql
-                              90_VALIDAR_BILLING_ONE.sql
+RUT | Negocio | Origen | Tipo | Flujo | Estado | Completitud | Q emisión | Rechazos | Issues | Monto
 ```
 
-El criterio de terminado no es "el script ejecutó", sino que el validador devuelva los estados esperados y no existan objetos inválidos.
+## Seguridad
+
+No cambia en v0.2.1:
+
+- Oracle autoriza;
+- LDAP solo autentica contraseña web;
+- roles/permisos/scopes se resuelven en tablas `RM_CFACT_*`;
+- la contraseña LDAP nunca se almacena.

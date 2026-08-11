@@ -4,23 +4,23 @@
 <main class="container">
   <div class="card">
     <h2>{{ 'Editar conexión' if item else 'Nueva conexión' }}</h2>
-    <p class="muted">No ingreses passwords, tokens ni secretos en CONFIG_JSON. `CREDENTIAL_REF` debe apuntar a una sección externa de `config.ini` o a un gestor de secretos futuro.</p>
+    <p class="muted">La conexión describe cómo acceder técnicamente (Oracle, SQL Server, REST, SOAP o archivo). El origen funcional —ANDES, AMDOCS, SAP, ACEPTA, etc.— se determina por los alcances, no por este dato técnico.</p>
     {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
     <form method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="form-grid">
         <div><label>Código</label><input name="connection_code" value="{{ item.connection_code if item else '' }}" {% if item %}readonly{% endif %} required></div>
         <div><label>Nombre</label><input name="connection_name" value="{{ item.connection_name if item else '' }}" required></div>
-        <div><label>Tipo</label><select name="connection_type" required>{% for t in ['ORACLE','SQLSERVER','REST','SOAP','FILE'] %}<option value="{{ t }}" {% if item and item.connection_type==t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+        <div><label>Tipo técnico</label><select name="connection_type" required>{% for t in ['ORACLE','SQLSERVER','REST','SOAP','FILE'] %}<option value="{{ t }}" {% if item and item.connection_type==t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
         <div><label>CREDENTIAL_REF</label><input name="credential_ref" value="{{ item.credential_ref if item and item.credential_ref else '' }}" placeholder="credential.BRM_PROD"></div>
       </div>
       <label>CONFIG_JSON (sin secretos)</label>
       <textarea name="config_json" rows="10" spellcheck="false">{{ item.config_json if item else '{}' }}</textarea>
-      <p class="meta">Ejemplos: Oracle `{"host":"servidor","port":1521,"service_name":"SERVICIO"}` · SQL Server `{"server":"srv","database":"BD","driver":"ODBC Driver 18 for SQL Server"}` · REST `{"base_url":"https://...","auth_type":"BEARER"}` · SOAP `{"wsdl_url":"https://...?...wsdl"}` · FILE `{"path":"K:\\ruta","pattern":"*.csv"}`.</p>
+      <p class="meta">No ingreses passwords, tokens ni secretos. Usa CREDENTIAL_REF.</p>
       <label>Alcances donde puede utilizarse esta conexión</label>
       <div class="checkbox-grid">
         {% for s in scopes %}
-        <label class="check"><input type="checkbox" name="scope_ids" value="{{ s.scope_id }}" {% if s.scope_id in selected_scope_ids %}checked{% endif %}> {{ s.scope_code }} · {{ s.company_name }} · {{ s.tax_id or 'Todos RUT' }} · {{ s.business_name or 'Todos negocios' }} · DOM {{ s.dom_code or 'Todos' }} · Ciclo {{ s.cycle_code or 'Todos' }}</label>
+        <label class="check"><input type="checkbox" name="scope_ids" value="{{ s.scope_id }}" {% if s.scope_id in selected_scope_ids %}checked{% endif %}> {{ s.scope_code }} · {{ s.tax_id }} · {{ s.business_name }} · {{ s.origin_name }} · {{ s.emission_type_name }}{% if s.flow_name %} · {{ s.flow_name }}{% endif %}</label>
         {% else %}<p class="muted">Primero debes crear al menos un alcance en Administración de Contexto.</p>{% endfor %}
       </div>
       <button type="submit">Guardar</button> <a class="button secondary" href="{{ url_for('integrations.index') }}">Volver</a>
