@@ -5,6 +5,7 @@
   <div class="card">
     <h2>Contexto de facturación</h2>
     <p class="muted">Jerarquía funcional: RUT emisor → Negocio → Origen → Tipo de emisión → Flujo operativo opcional. DOM y Ciclo ya no son dimensiones globales: se modelan como segmentadores del flujo que corresponda.</p>
+    <p><a class="button" href="{{ url_for('context.origins') }}">Administrar Orígenes</a></p>
     {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
   </div>
 
@@ -21,17 +22,15 @@
   </section>
 
   <div class="grid">
-    {% for kind,title in [('business','Negocio'),('origin','Origen funcional')] %}
     <section class="card">
-      <h3>Nuevo {{ title }}</h3>
-      <form method="post" action="{{ url_for('context.create_catalog', kind=kind) }}">
+      <h3>Nuevo Negocio</h3>
+      <form method="post" action="{{ url_for('context.create_catalog', kind='business') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>Código</label><input name="code" required>
         <label>Nombre</label><input name="name" required>
         <button type="submit">Agregar</button>
       </form>
     </section>
-    {% endfor %}
     <section class="card">
       <h3>Tipo de emisión</h3>
       <p class="muted">Base inicial: MASIVO y ONLINE. Puedes agregar otros si el negocio lo requiere.</p>
@@ -107,7 +106,7 @@
   <section class="card"><h3>RUT emisores</h3><table><thead><tr><th>RUT</th><th>Razón social</th><th>Empresa/grupo</th><th>Estado</th><th></th></tr></thead><tbody>{% for i in issuers %}<tr><td>{{ i.tax_id }}</td><td>{{ i.legal_name }}</td><td>{{ i.company_name or '-' }}</td><td>{{ i.active }}</td><td>{% if can('CONTEXT_MANAGE') %}<form method="post" action="{{ url_for('context.issuer_status', issuer_id=i.issuer_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if i.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if i.active=='Y' else 'Activar' }}</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></section>
 
   <div class="grid">
-    {% for kind,title,items in [('business','Negocios',businesses),('origin','Orígenes',origins),('emission_type','Tipos de emisión',emission_types),('company','Empresas/grupos opcionales',companies)] %}
+    {% for kind,title,items in [('business','Negocios',businesses),('emission_type','Tipos de emisión',emission_types),('company','Empresas/grupos opcionales',companies)] %}
     <section class="card"><h3>{{ title }}</h3><table><thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th></th></tr></thead><tbody>{% for x in items %}<tr><td>{{ x.code }}</td><td>{{ x.name }}</td><td>{{ x.active }}</td><td>{% if can('CONTEXT_MANAGE') %}<form method="post" action="{{ url_for('context.catalog_status', kind=kind, item_id=x.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 'N' if x.active=='Y' else 'Y' }}"><button type="submit">{{ 'Desactivar' if x.active=='Y' else 'Activar' }}</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></section>
     {% endfor %}
   </div>
