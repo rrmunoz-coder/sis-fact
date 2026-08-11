@@ -71,6 +71,36 @@ def create_origin(code: str, name: str) -> tuple[int, dict[str, Any]]:
     }
 
 
+def update_origin_name(origin_id: int, name: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    name = (name or "").strip()
+    if not name:
+        raise ValueError("El nombre del origen es obligatorio.")
+
+    with connection(commit=True) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT ORIGIN_CODE, ORIGIN_NAME, ACTIVE FROM RM_CFACT_ORIGIN WHERE ORIGIN_ID=:id",
+                {"id": origin_id},
+            )
+            row = cur.fetchone()
+            if not row:
+                raise ValueError("Origen no existe.")
+            before = {
+                "origin_id": origin_id,
+                "origin_code": row[0],
+                "origin_name": row[1],
+                "active": row[2],
+            }
+            cur.execute(
+                "UPDATE RM_CFACT_ORIGIN SET ORIGIN_NAME=:name WHERE ORIGIN_ID=:id",
+                {"name": name, "id": origin_id},
+            )
+
+    after = dict(before)
+    after["origin_name"] = name
+    return before, after
+
+
 def set_origin_status(origin_id: int, active: str) -> tuple[dict[str, Any], dict[str, Any]]:
     value = "Y" if str(active).upper() == "Y" else "N"
 
