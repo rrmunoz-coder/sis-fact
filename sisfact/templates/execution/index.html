@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Ejecuciones · Billing One{% endblock %}
+{% block body %}
+<main class="container">
+  <div class="card">
+    <h2>Control de ejecución de insumos</h2>
+    <p class="muted">La ejecución técnica se controla por política, cola y corrida. Una extracción SUCCESS indica que Billing One pudo obtener/leer el origen; la completitud y el control de facturación se evalúan después.</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+  </div>
+
+  <section class="card">
+    <h3>Estado por insumo</h3>
+    <table>
+      <thead><tr><th>Insumo</th><th>Conexión</th><th>Modo</th><th>Programación / ejecutor</th><th>Próxima</th><th>Última corrida</th><th>Filas</th><th>Cola</th><th>Acción</th></tr></thead>
+      <tbody>
+      {% for d in dashboard %}
+        <tr>
+          <td>{{ d.source_code }}<br><span class="meta">{{ d.source_name }}</span></td>
+          <td>{{ d.connection_name }}<br><span class="meta">{{ d.connection_type }} / {{ d.extraction_type }}</span></td>
+          <td>{{ d.execution_mode or 'SIN_POLITICA' }}</td>
+          <td>
+            {% if d.execution_mode == 'EXTERNAL' %}{{ d.external_executor or '-' }}{% else %}{{ d.frequency_type or 'Bajo demanda' }}{% if d.run_time %} · {{ d.run_time }}{% endif %}{% endif %}
+          </td>
+          <td>{{ d.next_due_at or '-' }}</td>
+          <td>{{ d.last_status or '-' }}{% if d.last_run_at %}<br><span class="meta">{{ d.last_run_at }}</span>{% endif %}</td>
+          <td>{{ d.last_rows_read if d.last_rows_read is not none else '-' }}</td>
+          <td>{{ d.open_queue or 0 }}</td>
+          <td>
+            {% if can('CONTROL_EXECUTE') and d.active=='Y' and d.execution_mode != 'EXTERNAL' %}
+            <form method="post" action="{{ url_for('execution.run_source', data_source_id=d.data_source_id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit">Ejecutar ahora</button>
+            </form>
+            {% elif d.execution_mode == 'EXTERNAL' %}<span class="meta">Lo entrega {{ d.external_executor or 'ejecutor externo' }}</span>{% endif %}
+          </td>
+        </tr>
+      {% else %}<tr><td colspan="9">No hay insumos visibles.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h3>Últimas corridas</h3>
+    <table>
+      <thead><tr><th>Inicio</th><th>Insumo</th><th>Scope</th><th>Ejecución</th><th>Estado</th><th>Leídas</th><th>Cargadas</th><th>Rechazadas</th><th>Detalle</th></tr></thead>
+      <tbody>
+      {% for r in runs %}
+        <tr>
+          <td>{{ r.started_at }}</td>
+          <td>{{ r.source_code }}<br><span class="meta">{{ r.source_name }}</span></td>
+          <td>{{ r.scope_code or '-' }}</td>
+          <td>{{ r.execution_code or '-' }}</td>
+          <td>{{ r.status }}</td>
+          <td>{{ r.rows_read }}</td><td>{{ r.rows_loaded }}</td><td>{{ r.rows_rejected }}</td>
+          <td>{% if r.error_message %}<span class="meta">{{ r.error_message }}</span>{% else %}-{% endif %}</td>
+        </tr>
+      {% else %}<tr><td colspan="9">Todavía no hay corridas.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+</main>
+{% endblock %}
