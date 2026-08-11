@@ -1,11 +1,14 @@
 /* ============================================================
-   BILLING ONE / SIS-FACT v0.2.1
+   BILLING ONE / SIS-FACT v0.2.4
    99_ROLLBACK_GREENFIELD.sql
    DESTRUCTIVO - SOLO PARA INSTALACION GREENFIELD DE BILLING ONE.
 
-   NUNCA usar como migración v0.1/v0.2 ni con datos productivos.
+   NUNCA usar como migración con datos productivos.
    SISGAV2 NO SE TOCA.
    ============================================================ */
+
+DROP TABLE RM_CFACT_EXECUTION_QUEUE CASCADE CONSTRAINTS PURGE;
+DROP TABLE RM_CFACT_EXECUTION_POLICY CASCADE CONSTRAINTS PURGE;
 
 DROP TABLE RM_CFACT_ISSUE CASCADE CONSTRAINTS PURGE;
 DROP TABLE RM_CFACT_EMISSION_STATUS CASCADE CONSTRAINTS PURGE;
