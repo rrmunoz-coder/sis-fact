@@ -4,22 +4,66 @@
 <main class="container">
   <div class="card">
     <h2>{{ 'Editar insumo' if item else 'Nuevo insumo' }}</h2>
-    <p class="muted">El insumo representa el dato funcional que necesita Billing One. Su origen funcional y tipo de emisión se determinan por los alcances asignados; la conexión define solo cómo acceder al dato.</p>
+    <p class="muted">El insumo representa el dato funcional que necesita Billing One. Su origen funcional y tipo de emisión se determinan por los alcances; la conexión define cómo acceder y la política define cuándo debe ejecutarse o esperarse.</p>
     {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
     <form method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <h3>Definición del insumo</h3>
       <div class="form-grid">
         <div><label>Código</label><input name="source_code" value="{{ item.source_code if item else '' }}" {% if item %}readonly{% endif %} required></div>
         <div><label>Nombre</label><input name="source_name" value="{{ item.source_name if item else '' }}" required></div>
         <div><label>Tipo lógico</label><input name="logical_type" value="{{ item.logical_type if item else '' }}" placeholder="DOCUMENTOS_FACTURADOS" required></div>
         <div><label>Conexión técnica</label><select name="connection_id" required>{% for c in connections %}<option value="{{ c.connection_id }}" {% if item and item.connection_id==c.connection_id %}selected{% endif %}>{{ c.connection_name }} · {{ c.connection_type }}</option>{% endfor %}</select></div>
         <div><label>Tipo extracción</label><select name="extraction_type" required>{% for t in ['SQL','REST','SOAP','FILE'] %}<option value="{{ t }}" {% if item and item.extraction_type==t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
-        <div><label>Frecuencia esperada</label><input name="expected_frequency" value="{{ item.expected_frequency if item and item.expected_frequency else '' }}" placeholder="DAILY / POR_FLUJO / MANUAL"></div>
         <div><label>Crítico</label><select name="critical_flag"><option value="N" {% if not item or item.critical_flag=='N' %}selected{% endif %}>No</option><option value="Y" {% if item and item.critical_flag=='Y' %}selected{% endif %}>Sí</option></select></div>
       </div>
+
       <label>Definición de extracción</label>
-      <textarea name="definition_text" rows="12" spellcheck="false" placeholder="SQL, endpoint relativo, operación SOAP o patrón de archivo">{{ item.definition_text if item else '' }}</textarea>
-      <p class="meta">La definición no debe contener credenciales. Para SQL se recomienda usar parámetros del contexto, no concatenar valores directamente.</p>
+      <textarea name="definition_text" rows="9" spellcheck="false" placeholder="SQL SELECT/WITH, endpoint REST relativo, operación SOAP o patrón de archivo">{{ item.definition_text if item else '' }}</textarea>
+      <p class="meta">La definición no debe contener credenciales. El worker v0.2.4 ejecuta SQL de solo lectura, GET REST y búsqueda de archivos. SOAP se controla a nivel WSDL y queda en WARNING hasta parametrizar una operación específica.</p>
+
+      <section class="form-section">
+        <h3>Política de ejecución</h3>
+        <p class="muted">MANUAL: se ejecuta desde Billing One. PROGRAMADO: el scheduler crea la solicitud automáticamente. EXTERNO: KNIME, BOT, JOB u otro proceso entrega el insumo y Billing One conserva la expectativa operativa.</p>
+        <div class="form-grid">
+          <div>
+            <label>Modo de ejecución</label>
+            <select name="execution_mode" required>
+              <option value="MANUAL" {% if policy.execution_mode=='MANUAL' %}selected{% endif %}>Manual</option>
+              <option value="SCHEDULED" {% if policy.execution_mode=='SCHEDULED' %}selected{% endif %}>Programado</option>
+              <option value="EXTERNAL" {% if policy.execution_mode=='EXTERNAL' %}selected{% endif %}>Externo</option>
+            </select>
+          </div>
+          <div>
+            <label>Periodicidad</label>
+            <select name="frequency_type">
+              <option value="" {% if not policy.frequency_type %}selected{% endif %}>No aplica</option>
+              {% for f,label in [('MINUTES','Cada N minutos'),('HOURLY','Cada N horas'),('DAILY','Diario'),('WEEKLY','Semanal'),('MONTHLY','Mensual')] %}
+              <option value="{{ f }}" {% if policy.frequency_type==f %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div><label>Intervalo N</label><input type="number" min="1" max="10080" name="interval_value" value="{{ policy.interval_value or 1 }}"></div>
+          <div><label>Hora (HH:MM)</label><input type="time" name="run_time" value="{{ policy.run_time or '06:00' }}"></div>
+          <div>
+            <label>Día semana</label>
+            <select name="day_of_week">
+              {% for n,name in [(1,'Lunes'),(2,'Martes'),(3,'Miércoles'),(4,'Jueves'),(5,'Viernes'),(6,'Sábado'),(7,'Domingo')] %}
+              <option value="{{ n }}" {% if (policy.day_of_week or 1)==n %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div><label>Día del mes</label><input type="number" min="1" max="31" name="day_of_month" value="{{ policy.day_of_month or 1 }}"></div>
+          <div><label>Timeout (min)</label><input type="number" min="1" max="1440" name="timeout_minutes" value="{{ policy.timeout_minutes or 45 }}"></div>
+          <div><label>Reintentos</label><input type="number" min="0" max="10" name="max_retries" value="{{ policy.max_retries if policy.max_retries is not none else 2 }}"></div>
+          <div><label>Ejecutor externo</label><input name="external_executor" value="{{ policy.external_executor or '' }}" placeholder="KNIME / BOT / JOB SQL / OTRO"></div>
+          <div><label>Política activa</label><select name="policy_active"><option value="Y" {% if policy.active!='N' %}selected{% endif %}>Sí</option><option value="N" {% if policy.active=='N' %}selected{% endif %}>Pausada</option></select></div>
+        </div>
+        {% if policy.next_due_at %}<p class="meta">Próxima ejecución/recepción esperada: {{ policy.next_due_at }}</p>{% endif %}
+        <p class="meta">Para PROGRAMADO la periodicidad es obligatoria. En EXTERNO, indicar el ejecutor; la periodicidad es opcional y representa la recepción esperada.</p>
+      </section>
+
       <label>Alcances donde aplica este insumo</label>
       <div class="checkbox-grid">
         {% for s in scopes %}
