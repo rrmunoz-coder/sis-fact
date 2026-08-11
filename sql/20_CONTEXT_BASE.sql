@@ -1,5 +1,5 @@
 /* ============================================================
-   BILLING ONE / SIS-FACT v0.2.1
+   BILLING ONE / SIS-FACT v0.2.3
    20_CONTEXT_BASE.sql
    Contexto funcional de facturación.
 
@@ -131,9 +131,11 @@ INSERT INTO RM_CFACT_ORIGIN (ORIGIN_CODE, ORIGIN_NAME) VALUES ('ANDES', 'ANDES')
 INSERT INTO RM_CFACT_ORIGIN (ORIGIN_CODE, ORIGIN_NAME) VALUES ('AMDOCS', 'AMDOCS');
 INSERT INTO RM_CFACT_ORIGIN (ORIGIN_CODE, ORIGIN_NAME) VALUES ('SAP', 'SAP');
 INSERT INTO RM_CFACT_ORIGIN (ORIGIN_CODE, ORIGIN_NAME) VALUES ('ACEPTA', 'Escritorio Acepta');
+INSERT INTO RM_CFACT_ORIGIN (ORIGIN_CODE, ORIGIN_NAME) VALUES ('SGA', 'SGA');
+INSERT INTO RM_CFACT_ORIGIN (ORIGIN_CODE, ORIGIN_NAME) VALUES ('DHT', 'DHT');
 
 COMMENT ON TABLE RM_CFACT_SCOPE IS 'Contexto operativo: RUT emisor, negocio, origen, tipo de emisión y flujo opcional.';
-COMMENT ON TABLE RM_CFACT_ORIGIN IS 'Origen funcional del proceso: ANDES, AMDOCS, SAP, ACEPTA u otro. No equivale a la conexión técnica.';
+COMMENT ON TABLE RM_CFACT_ORIGIN IS 'Origen funcional administrable: ANDES, AMDOCS, SAP, ACEPTA, SGA, DHT u otro. No equivale a la conexión técnica.';
 COMMENT ON TABLE RM_CFACT_FLOW IS 'Flujo específico dentro de origen/tipo. SEGMENT_LABEL indica si el runtime usa DOM, CICLO, LOTE u otro segmentador.';
 COMMENT ON COLUMN RM_CFACT_ISSUER.COMPANY_ID IS 'Agrupación opcional. El RUT emisor es la raíz funcional del contexto.';
 
