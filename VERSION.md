@@ -1,62 +1,68 @@
-# Billing One v0.2.3
+# Billing One v0.2.4
 
 Fecha: 2026-08-11
 
-Estado: incorporación de mantenedor dedicado de Orígenes funcionales.
+Estado: control operativo de ejecución de insumos.
+
+## Cambio principal
+
+La definición de un insumo deja de usar una frecuencia libre y pasa a tener una política real:
+
+```text
+Insumo -> Política -> Cola -> Worker -> Extraction Run
+```
+
+Modos:
+
+- `MANUAL`: ejecución bajo demanda desde Billing One;
+- `SCHEDULED`: scheduler crea ejecuciones por scope según agenda;
+- `EXTERNAL`: KNIME/BOT/JOB/u otro ejecutor externo, con expectativa operativa registrada.
+
+## Componentes
+
+```text
+BillingOne_Web
+BillingOne_Scheduler
+BillingOne_Worker
+```
+
+El worker está desacoplado de Flask/Waitress.
+
+## Oracle
+
+Nuevas tablas:
+
+- `RM_CFACT_EXECUTION_POLICY`;
+- `RM_CFACT_EXECUTION_QUEUE`.
+
+El modelo completo queda en 28 tablas `RM_CFACT_*` de Billing One.
+
+`RM_CFACT_EXTRACTION_RUN` conserva el histórico de cada intento.
+
+## Adquisición v0.2.4
+
+- Oracle SQL de solo lectura;
+- SQL Server SQL de solo lectura;
+- REST GET;
+- archivos por patrón;
+- SOAP: WSDL controlado, operación específica pendiente de parametrización.
+
+`ROWS_READ` representa lo leído/observado. `ROWS_LOADED` permanece en 0 hasta implementar staging/normalización persistente.
 
 ## Orígenes
 
-El catálogo `RM_CFACT_ORIGIN` pasa a administrarse desde una pantalla propia:
+Se conserva el mantenedor dinámico de Orígenes de v0.2.3. `SGA` y `DHT` se incluyen de forma idempotente en el parche v0.2.4.
+
+## Migración
 
 ```text
-Contexto -> Administrar Orígenes
+sql/migration_v0_2_3_to_v0_2_4/00_PRECHECK.sql
+sql/migration_v0_2_3_to_v0_2_4/10_APPLY.sql
+sql/migration_v0_2_3_to_v0_2_4/20_VALIDATE.sql
 ```
 
-Permite:
-
-- listar orígenes activos e inactivos;
-- crear nuevos orígenes sin modificar código;
-- activar/reactivar;
-- desactivar lógicamente;
-- ver cantidad de scopes activos;
-- ver cantidad de flujos activos;
-- impedir la desactivación mientras existan scopes o flujos activos dependientes.
-
-Orígenes base actuales:
-
-```text
-ANDES
-AMDOCS
-SAP
-ACEPTA
-SGA
-DHT
-```
-
-La lista es extensible y no está cerrada a estos valores.
-
-## Modelo funcional
-
-Sin cambio estructural respecto de v0.2.1:
-
-```text
-RUT emisor -> Negocio -> Origen -> Tipo de emisión -> Flujo operativo opcional
-```
-
-`DOM` y `Ciclo` continúan siendo segmentadores propios de determinados flujos.
-
-## Base de datos
-
-No cambia el esquema Oracle. Para una base v0.2.1/v0.2.2 ya existente se incorpora una carga idempotente de SGA y DHT:
-
-```text
-sql/migration_v0_2_2_to_v0_2_3/10_ORIGENES_BASE.sql
-```
-
-## Seguridad
-
-Sin cambios de autenticación/autorización. Oracle autoriza y LDAP valida la contraseña web.
+No modifica usuarios, LDAP, roles/permisos ni `SISGAV2`.
 
 ## Operación
 
-Puerto web vigente: `5040`.
+Puerto web: `5040`.
