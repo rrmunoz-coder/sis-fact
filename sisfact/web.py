@@ -25,7 +25,7 @@ def api_health():
         "status": "OK",
         "service": "sis-fact",
         "name": "Billing One",
-        "version": "0.2.2",
+        "version": "0.2.3",
     })
 
 
