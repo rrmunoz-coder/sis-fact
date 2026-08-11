@@ -20,7 +20,7 @@ def test_health_json():
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["status"] == "OK"
-    assert payload["version"] == "0.2.1"
+    assert payload["version"] == "0.2.2"
 
 
 def test_login_visible_without_database_access():

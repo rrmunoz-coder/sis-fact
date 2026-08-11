@@ -23,7 +23,7 @@
         <label class="check"><input type="checkbox" name="scope_ids" value="{{ s.scope_id }}" {% if s.scope_id in selected_scope_ids %}checked{% endif %}> {{ s.scope_code }} · {{ s.tax_id }} · {{ s.business_name }} · {{ s.origin_name }} · {{ s.emission_type_name }}{% if s.flow_name %} · {{ s.flow_name }}{% endif %}</label>
         {% else %}<p class="muted">Primero debes crear al menos un alcance en Administración de Contexto.</p>{% endfor %}
       </div>
-      <button type="submit">Guardar</button> <a class="button secondary" href="{{ url_for('integrations.index') }}">Volver</a>
+      <button type="submit">Guardar</button>
     </form>
   </div>
 </main>

@@ -1,67 +1,49 @@
-# Billing One v0.2.1
+# Billing One v0.2.2
 
 Fecha: 2026-08-11
 
-Estado: corrección del modelo funcional antes de cargar configuración operativa.
+Estado: mejora de navegación y usabilidad sobre el modelo funcional v0.2.1.
 
-## Cambio principal
+## Navegación
 
-La jerarquía de contexto queda definida como:
+Se incorpora una barra de navegación persistente para usuarios autenticados:
+
+```text
+Inicio | Contexto | Fuentes e integraciones | Usuarios
+```
+
+Las opciones se muestran según permisos. La sección activa queda resaltada.
+
+En pantallas hijas se agrega una segunda barra contextual con navegación al menú padre, por ejemplo:
+
+```text
+← Volver a Fuentes e integraciones
+← Volver a Usuarios
+← Volver a Inicio
+```
+
+Los botones locales `Volver` se retiran de los formularios para evitar duplicidad de navegación.
+
+## Modelo funcional
+
+Sin cambios respecto de v0.2.1:
 
 ```text
 RUT emisor -> Negocio -> Origen -> Tipo de emisión -> Flujo operativo opcional
 ```
 
-`DOM` y `Ciclo` dejan de ser dimensiones universales. Se modelan como nombres de segmentación del flujo cuando corresponda al origen:
+`DOM` y `Ciclo` continúan modelados como segmentadores de flujo cuando corresponda.
 
-- ANDES / MASIVO -> `SEGMENT_LABEL=DOM`;
-- AMDOCS / MASIVO -> `SEGMENT_LABEL=CICLO`;
-- ONLINE -> flujos como Bill Now, Bill Online o Corrective Billing.
+## Base de datos
 
-## Nuevas tablas
+**v0.2.2 no requiere cambios Oracle.**
 
-- `RM_CFACT_ORIGIN`
-- `RM_CFACT_EMISSION_TYPE`
-- `RM_CFACT_FLOW`
-- `RM_CFACT_EMISSION_STATUS`
-- `RM_CFACT_ISSUE`
-
-Se retiran del modelo vigente:
-
-- `RM_CFACT_DOM`
-- `RM_CFACT_CYCLE`
-
-El modelo completo pasa de 23 a 26 tablas Billing One.
-
-## Resultados operacionales
-
-Se incorpora base para almacenar por scope, periodo y segmento:
-
-- estado;
-- completitud;
-- Q esperada;
-- Q emitida;
-- Q rechazada;
-- Q issues;
-- monto total;
-- detalle de issues.
+El parche Oracle v0.2.0 -> v0.2.1 sigue siendo el vigente para corregir el modelo de contexto y resultados.
 
 ## Seguridad
 
-Sin cambios de modelo. Oracle sigue autorizando usuarios/roles/permisos y LDAP sigue validando exclusivamente la contraseña de acceso web.
+Sin cambios de autenticación/autorización. Oracle autoriza y LDAP valida la contraseña web.
 
 ## Operación
 
 Puerto web vigente: `5040`.
-
-## Migración
-
-Aplicar únicamente sobre v0.2.0 sin configuración de contexto/integraciones:
-
-```text
-sql/migration_v0_2_0_to_v0_2_1/00_PRECHECK.sql
-sql/migration_v0_2_0_to_v0_2_1/10_APPLY.sql
-sql/migration_v0_2_0_to_v0_2_1/20_VALIDATE.sql
-```
-
-`SISGAV2` permanece expresamente fuera de alcance.

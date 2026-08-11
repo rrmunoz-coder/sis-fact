@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.2 - 2026-08-11
+
+Mejora de navegación y usabilidad sin cambios de base de datos.
+
+### Navegación
+- Barra principal persistente: `Inicio`, `Contexto`, `Fuentes e integraciones`, `Usuarios`.
+- Opciones visibles según permisos del usuario.
+- Sección activa resaltada.
+- Barra secundaria contextual con retorno al menú padre.
+- Se retiran botones locales `Volver` de formularios de conexión, insumo y usuario.
+- La navegación deja de depender del botón Atrás del navegador.
+
+### Operación
+- API health actualizada a `0.2.2`.
+- Puerto web permanece en `5040`.
+- No requiere SQL ni cambios Oracle.
+
 ## v0.2.1 - 2026-08-11
 
 Corrección del modelo funcional antes de cargar configuración operativa real.

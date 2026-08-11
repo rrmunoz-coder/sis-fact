@@ -8,20 +8,62 @@
 </head>
 <body>
   {% if session.get('user_id') %}
+  {% set endpoint = request.endpoint or '' %}
   <header class="topbar">
-    <div>
+    <a class="brand-link" href="{{ url_for('web.app_home') }}">
       <h1>Billing One</h1>
       <small>SIS-FACT · Control integral de facturación</small>
-    </div>
-    <div>
-      {{ session.get('display_name') }} · {{ session.get('role_code') }}
+    </a>
+    <div class="user-box">
+      <span>{{ session.get('display_name') }} · {{ session.get('role_code') }}</span>
       <form class="logout-form" method="post" action="{{ url_for('auth.logout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="button secondary">Salir</button>
+        <button type="submit" class="nav-logout">Salir</button>
       </form>
     </div>
   </header>
+
+  <div class="nav-shell">
+    <nav class="mainnav" aria-label="Navegación principal">
+      <a class="nav-link{% if endpoint == 'web.app_home' %} active{% endif %}" href="{{ url_for('web.app_home') }}">Inicio</a>
+      {% if can('CONTEXT_VIEW') %}
+      <a class="nav-link{% if endpoint.startswith('context.') %} active{% endif %}" href="{{ url_for('context.index') }}">Contexto</a>
+      {% endif %}
+      {% if can('CONNECTION_VIEW') and can('SOURCE_VIEW') %}
+      <a class="nav-link{% if endpoint.startswith('integrations.') %} active{% endif %}" href="{{ url_for('integrations.index') }}">Fuentes e integraciones</a>
+      {% endif %}
+      {% if can('USER_MANAGE') %}
+      <a class="nav-link{% if endpoint.startswith('users.') %} active{% endif %}" href="{{ url_for('users.index') }}">Usuarios</a>
+      {% endif %}
+    </nav>
+
+    {% if endpoint != 'web.app_home' %}
+    <div class="subnav">
+      {% if endpoint.startswith('integrations.') %}
+        {% if endpoint != 'integrations.index' %}
+        <a class="back-link" href="{{ url_for('integrations.index') }}">← Volver a Fuentes e integraciones</a>
+        {% else %}
+        <a class="back-link" href="{{ url_for('web.app_home') }}">← Volver a Inicio</a>
+        {% endif %}
+        <span class="subnav-title">Fuentes e integraciones</span>
+      {% elif endpoint.startswith('users.') %}
+        {% if endpoint != 'users.index' %}
+        <a class="back-link" href="{{ url_for('users.index') }}">← Volver a Usuarios</a>
+        {% else %}
+        <a class="back-link" href="{{ url_for('web.app_home') }}">← Volver a Inicio</a>
+        {% endif %}
+        <span class="subnav-title">Administración de usuarios</span>
+      {% elif endpoint.startswith('context.') %}
+        <a class="back-link" href="{{ url_for('web.app_home') }}">← Volver a Inicio</a>
+        <span class="subnav-title">Contexto de facturación</span>
+      {% else %}
+        <a class="back-link" href="{{ url_for('web.app_home') }}">← Volver a Inicio</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
   {% endif %}
+
   {% block body %}{% endblock %}
 </body>
 </html>
