@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 
 from ..audit import record_event
 from ..context.service import list_scopes_active
 from ..errors import flash_exception
+from ..execution.service import default_policy, execution_summary_map, get_policy, policy_values, save_policy
 from ..security import permissions_required
 from .service import (
     connection_scope_ids,
@@ -29,6 +30,10 @@ def _scope_ids() -> list[int]:
     return [int(value) for value in request.form.getlist("scope_ids")]
 
 
+def _actor() -> str:
+    return session.get("username") or session.get("display_name") or "WEB"
+
+
 @bp.get("")
 @permissions_required("CONNECTION_VIEW", "SOURCE_VIEW")
 def index():
@@ -36,6 +41,7 @@ def index():
         "integrations/index.html",
         connections=list_connections(),
         sources=list_sources(),
+        execution_summary=execution_summary_map(),
     )
 
 
@@ -118,17 +124,27 @@ def connection_test(connection_id: int):
 def source_create():
     connections = [x for x in list_connections() if x["active"] == "Y"]
     scopes = list_scopes_active()
+    policy = default_policy()
     if request.method == "POST":
         try:
+            policy = {**default_policy(), **policy_values(request.form)}
             data_source_id, after = create_source(request.form, _scope_ids())
             record_event("INTEGRATIONS", "RM_CFACT_DATA_SOURCE", "INSERT", data_source_id, after=after)
-            flash("Insumo creado correctamente.", "success")
+            try:
+                saved_policy = save_policy(data_source_id, policy, _actor())
+                record_event("EXECUTION", "RM_CFACT_EXECUTION_POLICY", "UPSERT", data_source_id, after=saved_policy)
+            except Exception as exc:
+                flash_exception(exc, "Política de ejecución")
+                flash("El insumo fue creado, pero debes completar su política de ejecución antes de operarlo.", "error")
+                return redirect(url_for("integrations.source_edit", data_source_id=data_source_id))
+            flash("Insumo y política de ejecución creados correctamente.", "success")
             return redirect(url_for("integrations.index"))
         except Exception as exc:
             flash_exception(exc, "Administración de insumos")
     return render_template(
         "integrations/source_form.html",
         item=None,
+        policy=policy,
         connections=connections,
         scopes=scopes,
         selected_scope_ids=[],
@@ -147,19 +163,26 @@ def source_edit(data_source_id: int):
     ]
     scopes = list_scopes_active()
     selected = source_scope_ids(data_source_id)
+    policy = get_policy(data_source_id) or default_policy()
     if request.method == "POST":
         try:
+            policy_values_post = policy_values(request.form)
             before, after = update_source(data_source_id, request.form, _scope_ids())
             record_event("INTEGRATIONS", "RM_CFACT_DATA_SOURCE", "UPDATE", data_source_id, before, after)
-            flash("Insumo actualizado correctamente.", "success")
+            before_policy = get_policy(data_source_id)
+            policy = save_policy(data_source_id, policy_values_post, _actor())
+            record_event("EXECUTION", "RM_CFACT_EXECUTION_POLICY", "UPSERT", data_source_id, before_policy, policy)
+            flash("Insumo y política de ejecución actualizados correctamente.", "success")
             return redirect(url_for("integrations.index"))
         except Exception as exc:
             flash_exception(exc, "Administración de insumos")
             item = get_source(data_source_id) or item
             selected = source_scope_ids(data_source_id)
+            policy = get_policy(data_source_id) or policy
     return render_template(
         "integrations/source_form.html",
         item=item,
+        policy=policy,
         connections=connections,
         scopes=scopes,
         selected_scope_ids=selected,
